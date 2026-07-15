@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* SAP/Salesforce Enterprise Palette */
+  --shell-bg: #1a2638;
+  --shell-text: #c9d3e0;
+  --shell-active: #0070d2;
+  --shell-border: rgba(255,255,255,0.1);
+  
+  --content-bg: #f3f6f9;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  
+  --brand: #0070d2;
+  --brand-dark: #005fb2;
+  --brand-light: #e8f4ff;
+  
+  --text-primary: #16213a;
+  --text-secondary: #54698d;
+  --text-muted: #9faab7;
+  --text-link: #0070d2;
+  
+  --border: #e0e5ee;
+  --border-strong: #c9d3e0;
+  
+  --success: #2e844a;
+  --success-bg: #eaf5ea;
+  --warning: #a86403;
+  --warning-bg: #fef7e7;
+  --danger: #ba0517;
+  --danger-bg: #fef0f0;
+  --info: #0070d2;
+  --info-bg: #e8f4ff;
+  
+  --status-draft: #54698d;
+  --status-review: #a86403;
+  --status-sourcing: #0070d2;
+  --status-negotiation: #7526e3;
+  --status-approved: #2e844a;
+  --status-closed: #1b5e85;
+  --status-cancelled: #ba0517;
+  
+  --radius: 4px;
+  --radius-md: 6px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-panel: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--content-bg);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c9d3e0; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9faab7; }
