@@ -87,14 +87,17 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                 'group relative w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-150',
                 active ? 'bg-brand text-white shadow-sm' : 'text-enterprise-400 hover:bg-white/10 hover:text-white'
               )}>
-              <Icon size={18} />
+              <Icon size={18} className="pointer-events-none" />
+              {active && (
+                <div className="absolute left-[-8px] top-1.5 bottom-1.5 w-[3px] bg-brand rounded-r pointer-events-none" />
+              )}
               {id === 'risk' && atRisk.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center px-1">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-danger text-white text-2xs font-bold rounded-full flex items-center justify-center px-1 pointer-events-none">
                   {atRisk.length}
                 </span>
               )}
               {id === 'cases' && open.length > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-brand-dark text-white text-2xs font-bold rounded-full flex items-center justify-center px-1 border border-shell">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-brand-dark text-white text-2xs font-bold rounded-full flex items-center justify-center px-1 border border-shell pointer-events-none">
                   {open.length}
                 </span>
               )}
@@ -108,10 +111,10 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
 
         <div className="mt-auto flex flex-col items-center gap-1.5">
           <button className="w-10 h-10 rounded-lg flex items-center justify-center text-enterprise-400 hover:bg-white/10 hover:text-white transition-all" title="Settings">
-            <Settings size={17} />
+            <Settings size={17} className="pointer-events-none" />
           </button>
           <button className="w-10 h-10 rounded-lg flex items-center justify-center text-enterprise-400 hover:bg-white/10 hover:text-white transition-all" title="Help">
-            <HelpCircle size={17} />
+            <HelpCircle size={17} className="pointer-events-none" />
           </button>
         </div>
       </nav>
@@ -167,9 +170,9 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
             )}
 
             <button className="relative w-8 h-8 flex items-center justify-center text-enterprise-400 hover:text-white rounded hover:bg-white/10 transition-all" title="Notifications">
-              <Bell size={16} />
+              <Bell size={16} className="pointer-events-none" />
               {atRisk.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full ring-1 ring-shell" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full ring-1 ring-shell pointer-events-none" />
               )}
             </button>
 
@@ -177,11 +180,11 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
             <div className="relative">
               <button onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/10 transition-all">
-                <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-xs font-bold pointer-events-none">
                   {user?.initials || 'U'}
                 </div>
-                <span className="text-enterprise-300 text-xs hidden md:block">{user?.name || 'User'}</span>
-                <ChevronDown size={11} className="text-enterprise-400" />
+                <span className="text-enterprise-300 text-xs hidden md:block pointer-events-none">{user?.name || 'User'}</span>
+                <ChevronDown size={11} className="text-enterprise-400 pointer-events-none" />
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-enterprise-200 rounded shadow-md z-50">

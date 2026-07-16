@@ -48,9 +48,9 @@ export function Button({
         className
       )}
     >
-      {Icon && <Icon size={size === 'xs' ? 11 : 13} />}
+      {Icon && <Icon size={size === 'xs' ? 11 : 13} className="pointer-events-none" />}
       {children}
-      {IconRight && <IconRight size={size === 'xs' ? 11 : 13} />}
+      {IconRight && <IconRight size={size === 'xs' ? 11 : 13} className="pointer-events-none" />}
     </button>
   );
 }
@@ -72,7 +72,7 @@ export function IconButton({ icon: Icon, onClick, title, variant = 'ghost', size
         className
       )}
     >
-      <Icon size={size === 'xs' ? 12 : 14} />
+      <Icon size={size === 'xs' ? 12 : 14} className="pointer-events-none" />
     </button>
   );
 }
