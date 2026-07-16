@@ -8,7 +8,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, FolderOpen, AlertTriangle, BarChart3,
   Settings, Bell, Search, ChevronDown, Package,
-  LogOut, HelpCircle, ChevronRight, X
+  LogOut, HelpCircle, ChevronRight, X, Users
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { getUser, clearUser, AuthUser } from '@/lib/auth';
@@ -17,6 +17,7 @@ import { computeRisks } from '@/lib/data';
 const NAV = [
   { href: '/',        icon: LayoutDashboard, label: 'Dashboard',   id: 'dashboard' },
   { href: '/cases',   icon: FolderOpen,      label: 'Cases',        id: 'cases'     },
+  { href: '/suppliers', icon: Users,          label: 'Suppliers',    id: 'suppliers' },
   { href: '/risk',    icon: AlertTriangle,   label: 'Risk Monitor', id: 'risk'      },
   { href: '/reports', icon: BarChart3,       label: 'Reports',      id: 'reports'   },
 ];

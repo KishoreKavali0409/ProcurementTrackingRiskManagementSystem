@@ -1,5 +1,5 @@
 'use client';
-// src/app/cases/[id]/page.tsx — Case Detail Page (SAP Fiori record view style)
+// src/app/cases/[id]/page.tsx — Case Detail Page (SAP Fiori record view style with Bidding support)
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,22 +12,26 @@ import { CaseFormModal } from '@/components/cases/CaseFormModal';
 import { useStore } from '@/lib/store';
 import {
   ProcurementCase, computeRisks, getNextActions,
-  caseAge, formatCurrency, formatDate, DOCUMENT_TYPES
+  caseAge, formatCurrency, formatDate, DOCUMENT_TYPES,
+  Supplier, Quotation
 } from '@/lib/data';
 import {
   Edit2, Plus, ArrowLeft, CheckCircle, XCircle, Clock,
-  TrendingUp, FileText, AlertTriangle, Zap
+  TrendingUp, FileText, AlertTriangle, Zap, Users
 } from 'lucide-react';
+import { clsx } from 'clsx';
 
-const STATUS_FLOW = ['Draft', 'Under Review', 'Sourcing', 'Negotiation', 'Approved', 'Closed'];
+const STATUS_FLOW = [
+  'RFQ Draft', 'Bidders Defined', 'RFQ Shared', 'Offers Received',
+  'Technical Evaluation', 'Commercial Negotiation', 'Approval Pending',
+  'PO Released', 'Legal / NDA', 'GRN / Closed'
+];
 
-// ── Shell: loads store, finds case, shows not-found if missing ────────────
 export default function CaseDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const { cases, init } = useStore();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
 
   const c = cases.find(x => x.id === id);
@@ -48,25 +52,55 @@ export default function CaseDetailPage() {
     );
   }
 
-  // Once c is confirmed non-null, delegate to inner component
   return <CaseDetailInner caseData={c} />;
 }
 
-// ── Inner: receives guaranteed non-null case ─────────────────────────────
 function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
   const router = useRouter();
-  const { cases, updateCase, deleteCase, addUpdate } = useStore();
+  const { 
+    cases, updateCase, deleteCase, addUpdate, 
+    suppliers, initSuppliers, setBidders, 
+    getBidders, submitQuotation, getQuotations 
+  } = useStore();
 
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [updateText, setUpdateText] = useState('');
   const [updateAuthor, setUpdateAuthor] = useState('Priya Sharma');
 
-  // Computed values — all safe since c is non-null here
+  // Bidders and Quotes State
+  const [bidders, setBiddersList] = useState<Supplier[]>([]);
+  const [quotes, setQuotesList] = useState<Quotation[]>([]);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [quoteOpen, setQuoteOpen] = useState(false);
+  const [selectedBidders, setSelectedBidders] = useState<string[]>([]);
+  
+  // Quote form state
+  const [selectedSupplierId, setSelectedSupplierId] = useState('');
+  const [unitPrice, setUnitPrice] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('Net 30');
+  const [notes, setNotes] = useState('');
+
+  // Fetch bidders & quotations on mount/update
+  useEffect(() => {
+    initSuppliers();
+    loadBiddersAndQuotes();
+  }, [c.id]);
+
+  async function loadBiddersAndQuotes() {
+    const bList = await getBidders(c.id);
+    const qList = await getQuotations(c.id);
+    setBiddersList(bList);
+    setQuotesList(qList);
+    setSelectedBidders(bList.map(s => s.id));
+  }
+
   const risks = computeRisks(c);
   const actions = getNextActions(c, risks);
   const age = caseAge(c);
-  const isOpen = !['Closed', 'Cancelled'].includes(c.status);
+  const isOpen = c.status !== 'GRN / Closed';
   const docsReceived = Object.values(c.documents).filter(Boolean).length;
   const docTotal = DOCUMENT_TYPES.length;
   const closure = c.expectedClosure ? new Date(c.expectedClosure) : null;
@@ -74,6 +108,11 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
   const budgetOverrun = c.estimatedValue > c.approvedBudget
     ? ((c.estimatedValue - c.approvedBudget) / c.approvedBudget * 100) : 0;
   const statusFlowIdx = STATUS_FLOW.indexOf(c.status);
+
+  // Find lowest quotation total price for comparison highlight
+  const lowestQuote = quotes.length
+    ? [...quotes].sort((a, b) => a.totalPrice - b.totalPrice)[0]
+    : null;
 
   function handleSave(data: Partial<ProcurementCase>, isEdit: boolean) {
     if (isEdit && data.id) updateCase(data.id, data);
@@ -92,6 +131,43 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
     setUpdateOpen(false);
   }
 
+  async function handleAssignBidders() {
+    try {
+      await setBidders(c.id, selectedBidders);
+      setAssignOpen(false);
+      await loadBiddersAndQuotes();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleQuoteSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedSupplierId || !totalPrice) return;
+    try {
+      await submitQuotation({
+        caseId: c.id,
+        supplierId: selectedSupplierId,
+        unitPrice: parseFloat(unitPrice) || 0,
+        totalPrice: parseFloat(totalPrice) || 0,
+        deliveryDays: parseInt(deliveryDays) || 0,
+        paymentTerms,
+        notes
+      });
+      // Reset form
+      setSelectedSupplierId('');
+      setUnitPrice('');
+      setTotalPrice('');
+      setDeliveryDays('');
+      setPaymentTerms('Net 30');
+      setNotes('');
+      setQuoteOpen(false);
+      await loadBiddersAndQuotes();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   function quickStatusChange(newStatus: string) {
     updateCase(c.id, { status: newStatus as ProcurementCase['status'] });
   }
@@ -108,53 +184,49 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
         </>
       }
     >
-      {/* Status Process Flow Bar (SAP Fiori style) */}
+      {/* 10-Stage Process Flow Bar */}
       <Panel className="mb-4" noPad>
         <div className="px-4 py-3 overflow-x-auto">
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-0 min-w-[950px]">
             {STATUS_FLOW.map((s, i) => {
               const isDone = statusFlowIdx > i;
               const isCurrent = statusFlowIdx === i;
               return (
-                <div key={s} className="flex items-center flex-shrink-0">
+                <div key={s} className="flex items-center flex-1">
                   <button
                     onClick={() => {
                       if (!isCurrent && window.confirm(`Change status to "${s}"?`)) {
                         quickStatusChange(s);
                       }
                     }}
-                    className={[
-                      'flex flex-col items-center gap-1 px-3 py-1.5 rounded transition-all',
-                      isCurrent
-                        ? 'bg-brand text-white shadow-sm'
-                        : isDone
-                          ? 'text-success cursor-pointer hover:bg-success-bg'
-                          : 'text-text-muted cursor-pointer hover:bg-enterprise-100',
-                    ].join(' ')}
+                    className="flex flex-col items-center gap-1 flex-1 py-1 rounded transition-all hover:bg-enterprise-50/50"
                   >
-                    <div className={[
-                      'w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold',
+                    <div className={clsx(
+                      'w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-all',
                       isCurrent
-                        ? 'border-white bg-white text-brand'
+                        ? 'border-brand bg-brand text-white'
                         : isDone
                           ? 'border-success bg-success text-white'
-                          : 'border-enterprise-300',
-                    ].join(' ')}>
+                          : 'border-enterprise-300 text-text-muted bg-white'
+                    )}>
                       {isDone ? '✓' : i + 1}
                     </div>
-                    <span className="text-[10px] font-medium whitespace-nowrap">{s}</span>
+                    <span className={clsx(
+                      "text-[10px] font-semibold whitespace-nowrap",
+                      isCurrent ? "text-brand" : isDone ? "text-success" : "text-text-muted"
+                    )}>
+                      {s}
+                    </span>
                   </button>
                   {i < STATUS_FLOW.length - 1 && (
-                    <div className={`w-8 h-0.5 flex-shrink-0 ${isDone ? 'bg-success' : 'bg-enterprise-200'}`} />
+                    <div className={clsx(
+                      'h-0.5 flex-1 mx-2 min-w-[20px]',
+                      isDone ? 'bg-success' : 'bg-enterprise-200'
+                    )} />
                   )}
                 </div>
               );
             })}
-            {c.status === 'Cancelled' && (
-              <div className="ml-4 px-3 py-1.5 rounded bg-danger-bg">
-                <span className="text-xs font-semibold text-danger">Cancelled</span>
-              </div>
-            )}
           </div>
         </div>
       </Panel>
@@ -162,7 +234,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
       <div className="grid grid-cols-12 gap-4">
         {/* LEFT: 8 cols */}
         <div className="col-span-12 lg:col-span-8 space-y-4">
-
+          
           {/* Case Info */}
           <Panel>
             <PanelHeader title="Case Information" icon={<FileText size={15} />} />
@@ -177,7 +249,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
               )}
             </FieldGroup>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6">
-              <Field label="Vendor">{c.vendor}</Field>
+              <Field label="Vendor/Supplier">{c.vendor || '—'}</Field>
               <Field label="Requester">{c.requester}</Field>
               <Field label="Assigned To">{c.assignedTo}</Field>
               <Field label="Department">{c.department}</Field>
@@ -186,6 +258,105 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
               <Field label="Opened Date">{formatDate(c.openedDate)}</Field>
               <Field label="Expected Closure">{formatDate(c.expectedClosure)}</Field>
               <Field label="Last Updated">{formatDate(c.lastUpdated)}</Field>
+              <Field label="Budget category">
+                <span className={clsx(
+                  "text-2xs font-semibold px-1.5 py-0.5 rounded border",
+                  c.budgetCategory === 'high_value' 
+                    ? "bg-warning-bg text-warning border-warning/20" 
+                    : "bg-brand-light text-brand border-brand/20"
+                )}>
+                  {c.budgetCategory === 'high_value' ? 'High Value (≥50K EUR)' : 'Standard (<50K EUR)'}
+                </span>
+              </Field>
+            </div>
+          </Panel>
+
+          {/* Supplier Bidding Registry & Quotations Comparison */}
+          <Panel>
+            <PanelHeader 
+              title="Supplier Bidding & Quotes" 
+              icon={<Users size={15} />} 
+              actions={
+                <div className="flex items-center gap-1.5">
+                  <Button icon={Users} size="xs" onClick={() => setAssignOpen(true)}>Assign Bidders</Button>
+                  {bidders.length > 0 && (
+                    <Button icon={Plus} size="xs" variant="primary" onClick={() => setQuoteOpen(true)}>Submit Quote</Button>
+                  )}
+                </div>
+              }
+            />
+
+            {/* Bidders summary chips */}
+            <div className="mb-4">
+              <label className="block text-2xs font-semibold text-enterprise-400 uppercase tracking-wide mb-1.5">Assigned Bidders</label>
+              <div className="flex flex-wrap gap-1.5">
+                {bidders.length === 0 ? (
+                  <span className="text-xs text-text-muted italic">No bidders assigned yet. Click &quot;Assign Bidders&quot; to select.</span>
+                ) : (
+                  bidders.map(b => (
+                    <span key={b.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-enterprise-100 border border-enterprise-200 text-xs font-medium text-text-primary">
+                      👤 {b.name} <span className="text-[10px] text-text-muted">({b.city})</span>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Quotes side-by-side comparison table */}
+            <div className="border border-enterprise-200 rounded overflow-hidden bg-enterprise-50/30">
+              <div className="px-3 py-2 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between">
+                <span className="text-xs font-semibold text-text-secondary">Quotation Comparison Grid</span>
+                {lowestQuote && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-success-bg text-success border border-success/20 font-semibold">
+                    ✓ Highlighted lowest bid
+                  </span>
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-enterprise-200 bg-enterprise-50/50 text-text-secondary font-medium">
+                      <th className="px-3 py-2 font-semibold">Supplier</th>
+                      <th className="px-3 py-2 font-semibold text-right">Unit Price</th>
+                      <th className="px-3 py-2 font-semibold text-right">Total Price</th>
+                      <th className="px-3 py-2 font-semibold text-center">Delivery Time</th>
+                      <th className="px-3 py-2 font-semibold">Payment Terms</th>
+                      <th className="px-3 py-2 font-semibold">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotes.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-3 py-8 text-center text-text-muted italic">
+                          No quotations submitted yet. Click &quot;Submit Quote&quot; to record vendor responses.
+                        </td>
+                      </tr>
+                    ) : (
+                      quotes.map(q => {
+                        const isBest = q.id === lowestQuote?.id;
+                        return (
+                          <tr 
+                            key={q.id} 
+                            className={clsx(
+                              "border-b border-enterprise-100 transition-colors",
+                              isBest ? "bg-success-bg/60 text-success hover:bg-success-bg" : "hover:bg-enterprise-50/50 bg-white"
+                            )}
+                          >
+                            <td className="px-3 py-2.5 font-semibold text-text-primary">
+                              {q.supplier?.name || 'Unknown Supplier'}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(q.unitPrice)}</td>
+                            <td className="px-3 py-2.5 text-right font-bold">{formatCurrency(q.totalPrice)}</td>
+                            <td className="px-3 py-2.5 text-center font-medium">{q.deliveryDays} Days</td>
+                            <td className="px-3 py-2.5">{q.paymentTerms}</td>
+                            <td className="px-3 py-2.5 text-text-secondary italic">{q.notes || '—'}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </Panel>
 
@@ -286,7 +457,6 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
 
         {/* RIGHT: 4 cols sidebar */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
-
           {/* Quick Metrics */}
           <Panel>
             <PanelHeader title="Case Metrics" />
@@ -342,7 +512,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                 {risks.map((r, i) => (
                   <div key={i} className={`p-2.5 rounded border ${r.severity === 'critical' ? 'border-danger/20 bg-danger-bg' : 'border-warning/20 bg-warning-bg'}`}>
                     <div className={`text-xs font-bold mb-0.5 ${r.severity === 'critical' ? 'text-danger' : 'text-warning'}`}>
-                      ● {r.type}
+                       {r.type}
                     </div>
                     <div className={`text-xs ${r.severity === 'critical' ? 'text-danger/80' : 'text-warning/80'}`}>{r.msg}</div>
                   </div>
@@ -367,6 +537,138 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
           </Panel>
         </div>
       </div>
+
+      {/* Assign Bidders Dialog */}
+      {assignOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
+            <div className="px-4 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between">
+              <span className="font-semibold text-text-primary">Assign Bidders</span>
+              <button onClick={() => setAssignOpen(false)} className="text-text-muted hover:text-text-primary text-sm font-semibold">✕</button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+              {suppliers.length === 0 ? (
+                <p className="text-xs text-text-muted italic">No suppliers in registry. Please add suppliers first.</p>
+              ) : (
+                suppliers.map(s => {
+                  const isChecked = selectedBidders.includes(s.id);
+                  return (
+                    <label key={s.id} className="flex items-center gap-3 p-2 rounded border border-enterprise-100 hover:bg-enterprise-50 cursor-pointer transition-all">
+                      <input 
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setSelectedBidders(selectedBidders.filter(id => id !== s.id));
+                          } else {
+                            setSelectedBidders([...selectedBidders, s.id]);
+                          }
+                        }}
+                        className="w-4 h-4 accent-brand"
+                      />
+                      <div>
+                        <div className="text-sm font-medium text-text-primary">{s.name}</div>
+                        <div className="text-xs text-text-muted">{s.category} · {s.city}</div>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+            <div className="px-4 py-3 border-t border-enterprise-100 bg-enterprise-50 flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setAssignOpen(false)}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={handleAssignBidders}>Save Selection</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Quotation Dialog */}
+      {quoteOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
+            <div className="px-4 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between">
+              <span className="font-semibold text-text-primary">Submit Supplier Quotation</span>
+              <button onClick={() => setQuoteOpen(false)} className="text-text-muted hover:text-text-primary text-sm font-semibold">✕</button>
+            </div>
+            <form onSubmit={handleQuoteSubmit} className="p-4 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Select Bidder</label>
+                <select 
+                  required
+                  value={selectedSupplierId}
+                  onChange={e => setSelectedSupplierId(e.target.value)}
+                  className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+                >
+                  <option value="">-- Choose Assigned Supplier --</option>
+                  {bidders.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Unit Price (₹)</label>
+                  <input 
+                    type="number"
+                    value={unitPrice}
+                    onChange={e => setUnitPrice(e.target.value)}
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Total Quote Price (₹)</label>
+                  <input 
+                    required
+                    type="number"
+                    value={totalPrice}
+                    onChange={e => setTotalPrice(e.target.value)}
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Delivery Lead Time</label>
+                  <input 
+                    type="number"
+                    value={deliveryDays}
+                    onChange={e => setDeliveryDays(e.target.value)}
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    placeholder="Days"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Payment Terms</label>
+                  <input 
+                    type="text"
+                    value={paymentTerms}
+                    onChange={e => setPaymentTerms(e.target.value)}
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    placeholder="e.g. Net 30"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-text-secondary">Remarks / Notes</label>
+                <textarea 
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="w-full px-2 py-1 text-sm border border-enterprise-200 rounded focus:outline-none resize-none"
+                  rows={2}
+                  placeholder="e.g. Warranty details, volume discount"
+                />
+              </div>
+              <div className="pt-3 border-t border-enterprise-100 flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setQuoteOpen(false)}>Cancel</Button>
+                <Button type="submit" size="sm" variant="primary">Submit Bidding Quote</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <CaseFormModal
         open={editOpen}

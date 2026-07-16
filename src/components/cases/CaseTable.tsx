@@ -90,7 +90,7 @@ export function CaseTable({ cases }: Props) {
           {sorted.map((c, i) => {
             const age = caseAge(c);
             const risks = computeRisks(c);
-            const isOpen = !['Closed', 'Cancelled'].includes(c.status);
+            const isOpen = c.status !== 'GRN / Closed';
             const isOverdue = isOpen && c.expectedClosure && new Date(c.expectedClosure) < new Date();
             const topRisk = risks.find(r => r.severity === 'critical') || risks[0];
             const ageColor = age > 30 ? 'text-danger font-semibold' : age > 14 ? 'text-warning font-semibold' : 'text-text-secondary';
@@ -111,7 +111,18 @@ export function CaseTable({ cases }: Props) {
                 <td className="px-3 py-2.5 max-w-[200px]">
                   <Link href={`/cases/${c.id}`} className="block hover:text-brand transition-colors">
                     <div className="font-medium text-text-primary truncate text-sm" title={c.title}>{c.title}</div>
-                    <div className="text-xs text-text-muted truncate">{c.requester}</div>
+                    <div className="text-xs text-text-muted truncate flex items-center gap-1.5">
+                      <span>{c.requester}</span>
+                      <span className="w-1 h-1 rounded-full bg-enterprise-200" />
+                      <span className={clsx(
+                        "text-[10px] leading-none px-1 py-0.5 rounded-sm font-semibold whitespace-nowrap",
+                        c.budgetCategory === 'high_value' 
+                          ? "bg-warning-bg text-warning border border-warning/10" 
+                          : "bg-brand-light text-brand border border-brand/10"
+                      )}>
+                        {c.budgetCategory === 'high_value' ? "High Value (≥50K EUR)" : "Standard (<50K EUR)"}
+                      </span>
+                    </div>
                   </Link>
                 </td>
                 <td className="px-3 py-2.5"><StatusBadge status={c.status} /></td>

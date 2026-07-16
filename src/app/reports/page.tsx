@@ -26,8 +26,8 @@ export default function ReportsPage() {
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-  const open = cases.filter(c => !['Closed', 'Cancelled'].includes(c.status));
-  const closed = cases.filter(c => c.status === 'Closed');
+  const open = cases.filter(c => c.status !== 'GRN / Closed');
+  const closed = cases.filter(c => c.status === 'GRN / Closed');
   const atRisk = open.filter(c => computeRisks(c).length > 0);
   const critical = open.filter(c => computeRisks(c).some(r => r.severity === 'critical'));
   const ages = open.map(caseAge);

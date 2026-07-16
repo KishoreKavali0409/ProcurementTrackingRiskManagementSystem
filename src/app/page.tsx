@@ -16,8 +16,16 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const STATUS_COLORS: Record<string, string> = {
-  Draft: '#9faab7', 'Under Review': '#a86403', Sourcing: '#0070d2',
-  Negotiation: '#7526e3', Approved: '#2e844a', Closed: '#1b5e85', Cancelled: '#ba0517',
+  'RFQ Draft': '#9faab7',
+  'Bidders Defined': '#0070d2',
+  'RFQ Shared': '#0070d2',
+  'Offers Received': '#f97316',
+  'Technical Evaluation': '#3b82f6',
+  'Commercial Negotiation': '#7526e3',
+  'Approval Pending': '#a86403',
+  'PO Released': '#2e844a',
+  'Legal / NDA': '#a86403',
+  'GRN / Closed': '#1b5e85',
 };
 
 export default function DashboardPage() {
@@ -27,7 +35,7 @@ export default function DashboardPage() {
 
   const open = openCases();
   const atRisk = atRiskCases();
-  const closed = cases.filter(c => c.status === 'Closed');
+  const closed = cases.filter(c => c.status === 'GRN / Closed');
   const ages = open.map(caseAge);
   const avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0;
   const totalValue = open.reduce((s, c) => s + (c.estimatedValue || 0), 0);
@@ -80,7 +88,7 @@ export default function DashboardPage() {
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
         <KpiCard label="Open Cases" value={open.length} icon={FolderOpen} variant="brand"
-          sub={`${open.filter(c => c.status === 'Draft').length} pending start`} />
+          sub={`${open.filter(c => c.status === 'RFQ Draft').length} pending start`} />
         <KpiCard label="Avg Age (Days)" value={avgAge} icon={Clock} variant="warning"
           sub={`${ageBuckets[3].count} over 30 days`} />
         <KpiCard label="At-Risk Cases" value={atRisk.length} icon={AlertTriangle} variant="danger"

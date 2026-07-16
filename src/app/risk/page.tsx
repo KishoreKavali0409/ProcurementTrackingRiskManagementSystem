@@ -17,7 +17,7 @@ export default function RiskMonitorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
 
-  const open = cases.filter(c => !['Closed','Cancelled'].includes(c.status));
+  const open = cases.filter(c => c.status !== 'GRN / Closed');
   const casesWithRisks = open
     .map(c => ({ c, risks: computeRisks(c) }))
     .filter(({ risks }) => risks.length > 0)

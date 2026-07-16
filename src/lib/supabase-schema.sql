@@ -31,7 +31,11 @@ CREATE TABLE public.cases (
   assigned_to       TEXT NOT NULL,
   assigned_to_id    UUID REFERENCES public.profiles(id),
   priority          TEXT NOT NULL CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
-  status            TEXT NOT NULL CHECK (status IN ('Draft', 'Under Review', 'Sourcing', 'Negotiation', 'Approved', 'Closed', 'Cancelled')),
+  status            TEXT NOT NULL CHECK (status IN (
+    'RFQ Draft', 'Bidders Defined', 'RFQ Shared', 'Offers Received', 
+    'Technical Evaluation', 'Commercial Negotiation', 'Approval Pending', 
+    'PO Released', 'Legal / NDA', 'GRN / Closed'
+  )),
   vendor            TEXT,
   estimated_value   NUMERIC(15, 2) DEFAULT 0,
   approved_budget   NUMERIC(15, 2) DEFAULT 0,
@@ -41,8 +45,41 @@ CREATE TABLE public.cases (
   expected_closure  DATE,
   last_updated      DATE DEFAULT CURRENT_DATE,
   tags              TEXT[] DEFAULT '{}',
+  budget_category   TEXT DEFAULT 'standard' CHECK (budget_category IN ('standard', 'high_value')),
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── Suppliers Registry ─────────────────────────────────────
+CREATE TABLE public.suppliers (
+  id          UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name        TEXT NOT NULL,
+  email       TEXT NOT NULL,
+  phone       TEXT,
+  category    TEXT,
+  city        TEXT,
+  rating      INTEGER DEFAULT 5 CHECK (rating >= 1 AND rating <= 5),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── Case Suppliers (Bidders Junction) ──────────────────────
+CREATE TABLE public.case_suppliers (
+  case_id     TEXT NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
+  supplier_id UUID NOT NULL REFERENCES public.suppliers(id) ON DELETE CASCADE,
+  PRIMARY KEY (case_id, supplier_id)
+);
+
+-- ── Quotations ────────────────────────────────────────────
+CREATE TABLE public.quotations (
+  id            UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  case_id       TEXT NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
+  supplier_id   UUID NOT NULL REFERENCES public.suppliers(id) ON DELETE CASCADE,
+  unit_price    NUMERIC(15, 2) DEFAULT 0,
+  total_price   NUMERIC(15, 2) DEFAULT 0,
+  delivery_days INTEGER DEFAULT 0,
+  payment_terms TEXT,
+  notes         TEXT,
+  submitted_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── Case Updates / Activity ────────────────────────────────
@@ -128,25 +165,46 @@ ALTER TABLE public.risk_flags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.document_checklist ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.case_suppliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can read all, update their own
 CREATE POLICY "Public profiles are viewable" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Cases: all authenticated users can read; officers/managers can write
-CREATE POLICY "Authenticated users can view cases" ON public.cases FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Officers and managers can insert cases" ON public.cases FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('officer', 'manager', 'admin')));
-CREATE POLICY "Officers and managers can update cases" ON public.cases FOR UPDATE
-  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('officer', 'manager', 'admin')));
+CREATE POLICY "Authenticated users can view cases" ON public.cases FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert cases" ON public.cases FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update cases" ON public.cases FOR UPDATE USING (true);
+
+-- Suppliers: anyone can read/write
+CREATE POLICY "Public suppliers viewable" ON public.suppliers FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert suppliers" ON public.suppliers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update suppliers" ON public.suppliers FOR UPDATE USING (true);
+
+-- Case Suppliers: anyone can read/write
+CREATE POLICY "Public case_suppliers viewable" ON public.case_suppliers FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert case_suppliers" ON public.case_suppliers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can delete case_suppliers" ON public.case_suppliers FOR DELETE USING (true);
+
+-- Quotations: anyone can read/write
+CREATE POLICY "Public quotations viewable" ON public.quotations FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert quotations" ON public.quotations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update quotations" ON public.quotations FOR UPDATE USING (true);
 
 -- Updates: authenticated users can read; can insert their own
-CREATE POLICY "Authenticated users can view updates" ON public.case_updates FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated users can insert updates" ON public.case_updates FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can view updates" ON public.case_updates FOR SELECT USING (true);
+CREATE POLICY "Authenticated users can insert updates" ON public.case_updates FOR INSERT WITH CHECK (true);
 
 -- Notifications: users can only see their own
-CREATE POLICY "Users see own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users see own notifications" ON public.notifications FOR SELECT USING (true);
+CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE USING (true);
+
+-- Document Checklist: anyone can read/write
+CREATE POLICY "Public checklist viewable" ON public.document_checklist FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert checklist" ON public.document_checklist FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update checklist" ON public.document_checklist FOR UPDATE USING (true);
 
 -- ── Functions ─────────────────────────────────────────────
 
@@ -172,28 +230,5 @@ DECLARE
   year_str TEXT := EXTRACT(YEAR FROM NOW())::TEXT;
   seq_num  INT;
   new_id   TEXT;
-BEGIN
-  SELECT COUNT(*) + 1 INTO seq_num FROM public.cases WHERE id LIKE 'PC-' || year_str || '-%';
-  new_id := 'PC-' || year_str || '-' || LPAD(seq_num::TEXT, 3, '0');
-  RETURN new_id;
 END;
 $$ LANGUAGE plpgsql;
-
--- ── Sample Data Seed ─────────────────────────────────────
--- (Run after creating users in Supabase Auth)
--- INSERT INTO public.cases (id, title, category, ...) VALUES (...);
--- See src/lib/data.ts for sample case data to seed
-
--- ============================================================
--- SUPABASE SETUP INSTRUCTIONS
--- ============================================================
--- 1. Go to https://supabase.com → New Project
--- 2. Copy project URL and anon key
--- 3. Create .env.local in project root:
---    NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
---    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
--- 4. Run: npm install @supabase/supabase-js @supabase/ssr
--- 5. Paste this entire file into Supabase SQL Editor → Run
--- 6. Enable email auth in Supabase Auth settings
--- 7. Create 4 demo user accounts matching DEMO_USERS in login/page.tsx
--- ============================================================

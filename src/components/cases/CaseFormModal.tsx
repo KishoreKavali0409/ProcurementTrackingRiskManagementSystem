@@ -70,6 +70,7 @@ type FormState = {
   approvedBudget: string; estimatedValue: string; openedDate: string;
   expectedClosure: string; description: string;
   documents: Record<string, boolean>;
+  budgetCategory: string;
 };
 
 export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, existingCases }: Props) {
@@ -79,9 +80,10 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
   const [form, setForm] = useState<FormState>({
     title: '', category: CATEGORIES[0], department: DEPARTMENTS[0],
     requester: '', assignedTo: 'Priya Sharma', vendor: '', priority: 'Medium',
-    status: 'Draft', approvedBudget: '', estimatedValue: '',
+    status: 'RFQ Draft', approvedBudget: '', estimatedValue: '',
     openedDate: today, expectedClosure: '', description: '',
     documents: emptyDocs,
+    budgetCategory: 'standard',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -98,9 +100,10 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
         openedDate: editCase.openedDate, expectedClosure: editCase.expectedClosure,
         description: editCase.description,
         documents: { ...emptyDocs, ...editCase.documents },
+        budgetCategory: editCase.budgetCategory || 'standard',
       });
     } else {
-      setForm({ title: '', category: CATEGORIES[0], department: DEPARTMENTS[0], requester: '', assignedTo: 'Priya Sharma', vendor: '', priority: 'Medium', status: 'Draft', approvedBudget: '', estimatedValue: '', openedDate: today, expectedClosure: '', description: '', documents: emptyDocs });
+      setForm({ title: '', category: CATEGORIES[0], department: DEPARTMENTS[0], requester: '', assignedTo: 'Priya Sharma', vendor: '', priority: 'Medium', status: 'RFQ Draft', approvedBudget: '', estimatedValue: '', openedDate: today, expectedClosure: '', description: '', documents: emptyDocs, budgetCategory: 'standard' });
     }
     setErrors({});
     setActiveTab('basic');
@@ -131,6 +134,7 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
       updates: editCase?.updates || [],
       priority: form.priority as ProcurementCase['priority'],
       status: form.status as ProcurementCase['status'],
+      budgetCategory: form.budgetCategory as 'standard' | 'high_value',
     };
     onSave(data, !!editCase);
   }
@@ -229,6 +233,10 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
                 <Input label="Approved Budget (₹)" id="f-budget" type="number" placeholder="0" value={form.approvedBudget} onChange={e => set('approvedBudget', e.target.value)} />
                 <Input label="Estimated Value (₹)" id="f-estimate" type="number" placeholder="0" value={form.estimatedValue} onChange={e => set('estimatedValue', e.target.value)} />
               </div>
+              <Select label="Budget Category" id="f-budget-cat" value={form.budgetCategory} onChange={e => set('budgetCategory', e.target.value)}>
+                <option value="standard">Standard (&lt;50K EUR)</option>
+                <option value="high_value">High Value (≥50K EUR)</option>
+              </Select>
               {form.approvedBudget && form.estimatedValue && parseFloat(form.estimatedValue) > parseFloat(form.approvedBudget) && (
                 <div className="bg-warning-bg border border-warning/20 rounded p-3 text-xs text-warning">
                   ⚠ Estimated value exceeds approved budget by{' '}
