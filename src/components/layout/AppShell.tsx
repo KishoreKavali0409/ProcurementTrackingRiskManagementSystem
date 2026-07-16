@@ -152,7 +152,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                       onClick={() => { setSearch(''); setShowSearch(false); }}>
                       <span className="font-mono text-xs text-brand w-24 flex-shrink-0">{c.id}</span>
                       <span className="text-xs text-text-primary truncate flex-1">{c.title}</span>
-                      {risks.length > 0 && <span className="text-xs text-danger flex-shrink-0">⚠ {risks.length}</span>}
+                      {risks.length > 0 && <span className="text-xs text-danger flex-shrink-0">({risks.length})</span>}
                     </Link>
                   );
                 })}
@@ -161,6 +161,28 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            {/* Super User Role Switcher */}
+            {user?.isSuperUser && (
+              <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded border border-white/10 text-xs">
+                <span className="text-enterprise-400 text-2xs uppercase tracking-wider font-semibold">Active Role:</span>
+                <select
+                  value={user.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    const updatedUser = { ...user, role: newRole };
+                    localStorage.setItem('pt_user', JSON.stringify(updatedUser));
+                    window.location.reload();
+                  }}
+                  className="bg-transparent text-xs text-white font-medium border-none outline-none cursor-pointer focus:ring-0"
+                >
+                  <option className="text-slate-900" value="Procurement Manager">Procurement Manager</option>
+                  <option className="text-slate-900" value="Procurement Lead">Procurement Lead</option>
+                  <option className="text-slate-900" value="Procurement Officer">Procurement Officer</option>
+                  <option className="text-slate-900" value="Requester">Requester</option>
+                </select>
+              </div>
+            )}
+
             {/* Critical alert chip */}
             {critical.length > 0 && (
               <Link href="/risk" className="hidden sm:flex items-center gap-1.5 bg-danger/20 border border-danger/30 text-red-300 rounded px-2.5 py-1 text-xs font-semibold hover:bg-danger/30 transition-all">

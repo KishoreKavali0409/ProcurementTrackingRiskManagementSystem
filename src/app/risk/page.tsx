@@ -88,9 +88,9 @@ export default function RiskMonitorPage() {
                           </div>
                           <h3 className="text-sm font-semibold text-text-primary mb-1">{c.title}</h3>
                           <div className="flex items-center gap-3 text-xs text-text-muted">
-                            <span>👤 {c.assignedTo}</span>
-                            <span>📅 Open {age}d</span>
-                            <span>🕐 Updated {daysSinceUpd}d ago</span>
+                            <span>Owner: {c.assignedTo}</span>
+                            <span>Opened: {age}d ago</span>
+                            <span>Updated: {daysSinceUpd}d ago</span>
                             <span className="font-medium text-text-secondary">{formatCurrency(c.estimatedValue)}</span>
                           </div>
                         </div>

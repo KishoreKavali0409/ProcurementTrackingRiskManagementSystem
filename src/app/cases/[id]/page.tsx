@@ -319,7 +319,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                 ) : (
                   bidders.map(b => (
                     <span key={b.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-enterprise-100 border border-enterprise-200 text-xs font-medium text-text-primary">
-                      👤 {b.name} <span className="text-[10px] text-text-muted">({b.city})</span>
+                      {b.name} <span className="text-[10px] text-text-muted">({b.city})</span>
                     </span>
                   ))
                 )}
@@ -332,7 +332,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                 <span className="text-xs font-semibold text-text-secondary">Quotation Comparison Grid</span>
                 {lowestQuote && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-success-bg text-success border border-success/20 font-semibold">
-                    ✓ Highlighted lowest bid
+                    Lowest bid highlighted
                   </span>
                 )}
               </div>

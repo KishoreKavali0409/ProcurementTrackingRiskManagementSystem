@@ -1,11 +1,12 @@
 'use client';
-// src/lib/auth.ts — Auth context and hooks (localStorage-based for demo, Supabase-ready)
 
 export interface AuthUser {
   email: string;
   name: string;
   role: string;
   initials: string;
+  isSuperUser?: boolean;
+  actualRole?: string;
 }
 
 export function getUser(): AuthUser | null {
@@ -33,15 +34,18 @@ export function isAuthenticated(): boolean {
   return getUser() !== null;
 }
 
-// Role checks
+// Role permission checks
 export function canEdit(user: AuthUser | null): boolean {
-  return !!user && ['officer', 'manager', 'admin', 'Procurement Lead', 'Procurement Officer', 'Procurement Manager'].includes(user.role);
+  if (!user) return false;
+  return ['Procurement Lead', 'Procurement Officer', 'Procurement Manager'].includes(user.role);
 }
 
 export function canApprove(user: AuthUser | null): boolean {
-  return !!user && ['manager', 'admin', 'Procurement Manager'].includes(user.role);
+  if (!user) return false;
+  return ['Procurement Manager'].includes(user.role);
 }
 
 export function isManager(user: AuthUser | null): boolean {
-  return !!user && ['manager', 'admin', 'Procurement Manager', 'Procurement Lead'].includes(user.role);
+  if (!user) return false;
+  return ['Procurement Manager', 'Procurement Lead'].includes(user.role);
 }

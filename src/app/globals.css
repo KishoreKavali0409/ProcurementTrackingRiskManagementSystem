@@ -1,40 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
-  /* SAP/Salesforce Enterprise Palette */
-  --shell-bg: #1a2638;
-  --content-bg: #f3f6f9;
-  --brand: #0070d2;
-  --brand-dark: #005fb2;
-  --brand-light: #e8f4ff;
-  --text-primary: #16213a;
-  --text-secondary: #54698d;
-  --text-muted: #9faab7;
-  --success: #2e844a;
-  --success-bg: #eaf5ea;
-  --warning: #a86403;
-  --warning-bg: #fef7e7;
-  --danger: #ba0517;
-  --danger-bg: #fef0f0;
+  /* Premium Monochrome Zinc/Slate Palette */
+  --shell-bg: #18181b;
+  --shell-text: #a1a1aa;
+  --shell-active: #27272a;
+  --shell-border: rgba(255,255,255,0.08);
+  
+  --content-bg: #fafafa;
+  --surface: #ffffff;
+  --surface-alt: #f4f4f5;
+  
+  --brand: #18181b;
+  --brand-dark: #09090b;
+  --brand-light: #f4f4f5;
+  
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
+  --text-link: #18181b;
+  
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --info: #27272a;
+  --info-bg: #f4f4f5;
+  
+  --status-draft: #52525b;
+  --status-review: #d97706;
+  --status-sourcing: #18181b;
+  --status-negotiation: #4f46e5;
+  --status-approved: #16a34a;
+  --status-closed: #0f766e;
+  --status-cancelled: #dc2626;
+  
+  --radius: 6px;
+  --radius-md: 8px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  --shadow-panel: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04);
 }
 
-* { box-sizing: border-box; }
-
+* { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; }
-
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f3f6f9;
-  color: #16213a;
+  background: var(--content-bg);
+  color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c9d3e0; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #9faab7; }
+::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }

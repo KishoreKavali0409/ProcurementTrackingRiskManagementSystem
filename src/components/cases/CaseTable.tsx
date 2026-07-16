@@ -137,7 +137,7 @@ export function CaseTable({ cases }: Props) {
                 <td className="px-3 py-2.5 text-xs whitespace-nowrap">
                   <span className={isOverdue ? 'text-danger font-semibold' : 'text-text-secondary'}>
                     {formatDate(c.expectedClosure)}
-                    {isOverdue && ' ⚠'}
+                    {isOverdue && ' (Overdue)'}
                   </span>
                 </td>
                 <td className="px-3 py-2.5 text-xs text-text-secondary text-right whitespace-nowrap font-medium">

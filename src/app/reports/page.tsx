@@ -48,9 +48,9 @@ export default function ReportsPage() {
     lines.push(`The average case age is ${avgAge} days.`);
     lines.push(``);
     if (atRisk.length > 0) {
-      lines.push(`⚠ RISK ALERT: ${atRisk.length} case(s) require attention — ${critical.length} flagged CRITICAL.`);
+      lines.push(`RISK ALERT: ${atRisk.length} case(s) require attention — ${critical.length} flagged CRITICAL.`);
     } else {
-      lines.push(`✅ All cases are progressing within expected timelines.`);
+      lines.push(`All cases are progressing within expected timelines.`);
     }
     lines.push(``);
     lines.push(`KEY METRICS`);
@@ -133,7 +133,7 @@ export default function ReportsPage() {
     open.sort((a, b) => caseAge(b) - caseAge(a)).forEach(c => {
       const risks = computeRisks(c);
       const title = c.title.length > 28 ? c.title.slice(0, 27) + '…' : c.title;
-      const riskStr = risks.length === 0 ? '✅ Healthy' : `⚠ ${risks.length} risk(s)`;
+      const riskStr = risks.length === 0 ? 'Healthy' : `${risks.length} risk(s)`;
       lines.push(`${c.id.padEnd(14)} ${title.padEnd(30)} ${c.status.padEnd(16)} ${(caseAge(c) + 'd').padEnd(6)} ${riskStr}`);
     });
     lines.push(`${'─'.repeat(76)}`);
