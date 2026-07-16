@@ -1,8 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .routers import cases, suppliers, quotations, risk
 
 app = FastAPI(title="ProcureTrack Enterprise API", version="1.0.0")
+
+@app.exception_handler(RuntimeError)
+async def db_not_configured_handler(request: Request, exc: RuntimeError):
+    if "Database connection is not configured" in str(exc):
+        return JSONResponse(
+            status_code=503,
+            content={"detail": str(exc)},
+        )
+    raise exc
 
 # Enable CORS for Next.js app
 app.add_middleware(
