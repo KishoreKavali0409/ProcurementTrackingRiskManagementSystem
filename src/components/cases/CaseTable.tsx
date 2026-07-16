@@ -152,7 +152,7 @@ export function CaseTable({ cases }: Props) {
                 <td className="px-2 py-2.5">
                   <Link
                     href={`/cases/${c.id}`}
-                    className="opacity-0 group-hover:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded text-text-muted hover:text-brand hover:bg-brand-light transition-all"
+                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 inline-flex items-center justify-center w-6 h-6 rounded text-text-muted hover:text-brand hover:bg-brand-light transition-all"
                   >
                     <ExternalLink size={12} />
                   </Link>

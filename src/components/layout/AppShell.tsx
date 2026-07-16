@@ -102,7 +102,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                 </span>
               )}
               {/* Tooltip */}
-              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-enterprise-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md border border-white/10">
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 bg-enterprise-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 md:group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-md border border-white/10 hidden md:block">
                 {label}
               </div>
             </Link>
