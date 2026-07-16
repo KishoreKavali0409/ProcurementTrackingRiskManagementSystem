@@ -2,12 +2,18 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-# Try loading from parent directory (.env.local in root) and current directory
-load_dotenv(dotenv_path="../.env.local")
+from pathlib import Path
+
+# Resolve absolute paths to .env.local in root and backend directories
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent.parent
+
+load_dotenv(dotenv_path=project_root / ".env.local")
+load_dotenv(dotenv_path=current_dir.parent / ".env.local")
 load_dotenv()
 
 supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL") or ""
-supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.environ.get("SUPABASE_KEY") or ""
+supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") or os.environ.get("SUPABASE_KEY") or ""
 
 class DummyClient:
     def table(self, *args, **kwargs):

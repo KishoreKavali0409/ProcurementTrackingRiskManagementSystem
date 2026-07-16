@@ -10,6 +10,7 @@ import { Tag } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CaseFormModal } from '@/components/cases/CaseFormModal';
 import { useStore } from '@/lib/store';
+import { getUser, canEdit, canApprove, AuthUser } from '@/lib/auth';
 import {
   ProcurementCase, computeRisks, getNextActions,
   caseAge, formatCurrency, formatDate, DOCUMENT_TYPES,
@@ -63,10 +64,11 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
     getBidders, submitQuotation, getQuotations 
   } = useStore();
 
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [updateText, setUpdateText] = useState('');
-  const [updateAuthor, setUpdateAuthor] = useState('Priya Sharma');
+  const [updateAuthor, setUpdateAuthor] = useState('');
 
   // Bidders and Quotes State
   const [bidders, setBiddersList] = useState<Supplier[]>([]);
@@ -85,16 +87,23 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
 
   // Fetch bidders & quotations on mount/update
   useEffect(() => {
+    const u = getUser();
+    setUser(u);
+    if (u) setUpdateAuthor(u.name);
     initSuppliers();
     loadBiddersAndQuotes();
   }, [c.id]);
 
   async function loadBiddersAndQuotes() {
-    const bList = await getBidders(c.id);
-    const qList = await getQuotations(c.id);
-    setBiddersList(bList);
-    setQuotesList(qList);
-    setSelectedBidders(bList.map(s => s.id));
+    try {
+      const bList = await getBidders(c.id);
+      const qList = await getQuotations(c.id);
+      setBiddersList(bList);
+      setQuotesList(qList);
+      setSelectedBidders(bList.map(s => s.id));
+    } catch (err) {
+      console.error('Failed to load bidders or quotes:', err);
+    }
   }
 
   const risks = computeRisks(c);
@@ -169,8 +178,19 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
   }
 
   function quickStatusChange(newStatus: string) {
+    if (!user) return;
+    if (!canEdit(user) && c.requester !== user.name) {
+      alert('Access Denied: Requesters cannot promote status stage.');
+      return;
+    }
+    if (newStatus === 'PO Released' && !canApprove(user)) {
+      alert('Access Denied: Only Procurement Managers can approve PO release.');
+      return;
+    }
     updateCase(c.id, { status: newStatus as ProcurementCase['status'] });
   }
+
+  const hasEditAccess = canEdit(user) || c.requester === user?.name;
 
   return (
     <AppShell
@@ -179,8 +199,10 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
       breadcrumbs={[{ label: 'Case Registry', href: '/cases' }, { label: c.id }]}
       actions={
         <>
-          <Button icon={Plus} size="sm" onClick={() => setUpdateOpen(true)}>Add Update</Button>
-          <Button icon={Edit2} variant="primary" size="sm" onClick={() => setEditOpen(true)}>Edit Case</Button>
+          <Button icon={Plus} size="sm" onClick={() => setUpdateOpen(true)}>Add Note</Button>
+          {hasEditAccess && (
+            <Button icon={Edit2} variant="primary" size="sm" onClick={() => setEditOpen(true)}>Edit Case</Button>
+          )}
         </>
       }
     >
@@ -277,12 +299,14 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
               title="Supplier Bidding & Quotes" 
               icon={<Users size={15} />} 
               actions={
-                <div className="flex items-center gap-1.5">
-                  <Button icon={Users} size="xs" onClick={() => setAssignOpen(true)}>Assign Bidders</Button>
-                  {bidders.length > 0 && (
-                    <Button icon={Plus} size="xs" variant="primary" onClick={() => setQuoteOpen(true)}>Submit Quote</Button>
-                  )}
-                </div>
+                hasEditAccess && (
+                  <div className="flex items-center gap-1.5">
+                    <Button icon={Users} size="xs" onClick={() => setAssignOpen(true)}>Assign Bidders</Button>
+                    {bidders.length > 0 && (
+                      <Button icon={Plus} size="xs" variant="primary" onClick={() => setQuoteOpen(true)}>Submit Quote</Button>
+                    )}
+                  </div>
+                )
               }
             />
 

@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { ProcurementCase, STATUSES, CATEGORIES, DEPARTMENTS, PRIORITIES, DOCUMENT_TYPES, generateId } from '@/lib/data';
 import { Button } from '@/components/ui/Button';
 import { clsx } from 'clsx';
+import { getUser, canEdit, canApprove, AuthUser } from '@/lib/auth';
 
 interface Props {
   open: boolean;
@@ -86,11 +87,13 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
     budgetCategory: 'standard',
   });
 
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'basic' | 'financial' | 'docs'>('basic');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    setUser(getUser());
     if (editCase) {
       setForm({
         title: editCase.title, category: editCase.category, department: editCase.department,
@@ -122,7 +125,11 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
     return Object.keys(e).length === 0;
   }
 
+  const isReadOnly = editCase ? (!canEdit(user) && editCase.requester !== user?.name) : false;
+  const canDelete = !!user && canApprove(user);
+
   function handleSave() {
+    if (isReadOnly) return;
     if (!validate()) { setActiveTab('basic'); return; }
     const data: Partial<ProcurementCase> = {
       ...form,
@@ -143,25 +150,20 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
 
   const TABS = [
     { id: 'basic', label: 'Basic Info' },
-    { id: 'financial', label: 'Financial' },
+    { id: 'financial', label: 'Financials' },
     { id: 'docs', label: 'Documents' },
   ] as const;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-lg border border-enterprise-200 shadow-md max-w-lg w-full flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-enterprise-200">
-          <div>
-            <h2 className="text-base font-semibold text-text-primary">
-              {editCase ? `Edit Case — ${editCase.id}` : 'New Procurement Case'}
-            </h2>
-            <p className="text-xs text-text-secondary mt-0.5">
-              {editCase ? 'Update case information' : 'Create a new procurement case record'}
-            </p>
-          </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded hover:bg-enterprise-100 transition-colors">
-            <X size={16} className="text-text-muted" />
+        <div className="px-5 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between rounded-t-lg">
+          <span className="font-semibold text-text-primary text-sm uppercase tracking-wide">
+            {editCase ? 'Edit Case Record' : 'Create Procurement Case'}
+          </span>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+            <X size={15} />
           </button>
         </div>
 
@@ -183,8 +185,15 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
           ))}
         </div>
 
+        {isReadOnly && (
+          <div className="bg-info-bg px-5 py-2 text-xs text-info font-semibold border-b border-enterprise-200">
+            ℹ You are viewing this case in read-only mode.
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          <fieldset disabled={isReadOnly} className="contents">
           {activeTab === 'basic' && (
             <div className="space-y-3">
               <Input label="Case Title" id="f-title" required placeholder="e.g. Annual SAP License Renewal" value={form.title} onChange={e => set('title', e.target.value)} />
@@ -272,22 +281,25 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
               </div>
             </div>
           )}
+          </fieldset>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-enterprise-200 bg-enterprise-50 rounded-b-lg">
           <div>
-            {editCase && onDelete && (
+            {editCase && onDelete && canDelete && (
               <Button variant="danger" size="sm" onClick={() => { if (confirm('Delete this case?')) onDelete(editCase.id); }}>
                 Delete Case
               </Button>
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={handleSave}>
-              {editCase ? 'Save Changes' : 'Create Case'}
-            </Button>
+            <Button variant="secondary" size="sm" onClick={onClose}>{isReadOnly ? 'Close' : 'Cancel'}</Button>
+            {!isReadOnly && (
+              <Button variant="primary" size="sm" onClick={handleSave}>
+                {editCase ? 'Save Changes' : 'Create Case'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
