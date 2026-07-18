@@ -6,9 +6,12 @@ import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
 import { useStore } from '@/lib/store';
 import { Plus, Search, Trash2, Mail, Phone, MapPin, Tag } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { TableRowSkeleton } from '@/components/ui/Skeleton';
 
 export default function SuppliersPage() {
-  const { suppliers, initSuppliers, addSupplier, deleteSupplier } = useStore();
+  const { suppliers, initSuppliers, suppliersInitialized, addSupplier, deleteSupplier } = useStore();
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   
@@ -81,73 +84,88 @@ export default function SuppliersPage() {
           </div>
 
           {/* Supplier Grid/List */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-enterprise-200 bg-enterprise-50 text-text-secondary font-medium">
-                  <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Supplier Name</th>
-                  <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Contact Details</th>
-                  <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Category</th>
-                  <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Location</th>
-                  <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-center">Rating</th>
-                  <th className="px-4 py-2.5 w-12 text-center"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center text-text-muted">
-                      No suppliers found. Click &quot;Add Supplier&quot; to populate.
-                    </td>
+          <ErrorBoundary>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-enterprise-200 bg-enterprise-50 text-text-secondary font-medium">
+                    <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Supplier Name</th>
+                    <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Contact Details</th>
+                    <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Category</th>
+                    <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide">Location</th>
+                    <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wide text-center">Rating</th>
+                    <th className="px-4 py-2.5 w-12 text-center"></th>
                   </tr>
-                ) : (
-                  filtered.map(s => (
-                    <tr key={s.id} className="border-b border-enterprise-100 hover:bg-enterprise-50 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-text-primary">{s.name}</td>
-                      <td className="px-4 py-3 text-text-secondary">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="flex items-center gap-1 text-xs">
-                            <Mail size={12} className="text-text-muted" /> {s.email}
-                          </span>
-                          {s.phone && (
-                            <span className="flex items-center gap-1 text-xs">
-                              <Phone size={12} className="text-text-muted" /> {s.phone}
-                            </span>
-                          )}
+                </thead>
+                <tbody>
+                  {!suppliersInitialized ? (
+                    <tr>
+                      <td colSpan={6} className="p-0">
+                        <div className="bg-white dark:bg-surface-alt">
+                          <TableRowSkeleton />
+                          <TableRowSkeleton />
+                          <TableRowSkeleton />
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-text-secondary">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-light text-brand text-xs font-medium">
-                          <Tag size={10} /> {s.category}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-text-secondary">
-                        {s.city ? (
-                          <span className="flex items-center gap-1 text-xs">
-                            <MapPin size={12} className="text-text-muted" /> {s.city}
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="text-yellow-500 font-semibold text-sm">
-                          {'★'.repeat(s.rating)}{'☆'.repeat(5 - s.rating)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button 
-                          onClick={() => deleteSupplier(s.id)}
-                          className="p-1 rounded hover:bg-danger-bg text-text-muted hover:text-danger transition-colors"
-                          title="Delete supplier"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                    </tr>
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8">
+                        <EmptyState 
+                          title="No suppliers found" 
+                          description="Try modifying your search or click 'Add Supplier' to register a new supplier." 
+                        />
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    filtered.map(s => (
+                      <tr key={s.id} className="border-b border-enterprise-100 hover:bg-enterprise-50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-text-primary">{s.name}</td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="flex items-center gap-1 text-xs">
+                              <Mail size={12} className="text-text-muted" /> {s.email}
+                            </span>
+                            {s.phone && (
+                              <span className="flex items-center gap-1 text-xs">
+                                <Phone size={12} className="text-text-muted" /> {s.phone}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-brand-light text-brand text-xs font-medium">
+                            <Tag size={10} /> {s.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-text-secondary">
+                          {s.city ? (
+                            <span className="flex items-center gap-1 text-xs">
+                              <MapPin size={12} className="text-text-muted" /> {s.city}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-yellow-500 font-semibold text-sm">
+                            {'★'.repeat(s.rating)}{'☆'.repeat(5 - s.rating)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button 
+                            onClick={() => deleteSupplier(s.id)}
+                            className="p-1 rounded hover:bg-danger-bg text-text-muted hover:text-danger transition-colors"
+                            title="Delete supplier"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </ErrorBoundary>
         </Panel>
       </div>
 

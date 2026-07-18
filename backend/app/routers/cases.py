@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import List, Dict
-from datetime import datetime
+from datetime import datetime, date
 from ..db import supabase
 from ..schemas.case import CaseCreate, CaseUpdate, CaseResponse, CaseUpdateSchema
 from ..schemas.supplier import SupplierResponse
 from .notifications import create_notification
+from ..services.notifications_service import send_overdue_email
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -272,3 +273,49 @@ def get_bidders(id: str):
         if supplier_raw:
             suppliers_list.append(supplier_raw)
     return suppliers_list
+
+@router.post("/check-overdue")
+def check_overdue_cases(background_tasks: BackgroundTasks):
+    res = supabase.table('cases').select('*, case_updates(*)').execute()
+    today = date.today()
+    sent_count = 0
+    
+    for row in res.data:
+        if row.get("status") == "GRN / Closed":
+            continue
+            
+        expected_str = row.get("expected_closure")
+        if expected_str:
+            try:
+                expected_dt = datetime.strptime(expected_str.split('T')[0], "%Y-%m-%d").date()
+                if expected_dt < today:
+                    delay_days = (today - expected_dt).days
+                    
+                    has_alert = any("Overdue email notification dispatched" in u['text'] for u in row.get('case_updates', []))
+                    if not has_alert:
+                        supabase.table('case_updates').insert({
+                            "case_id": row['id'],
+                            "text": f"Overdue email notification dispatched to management ({delay_days} days overdue).",
+                            "author": "System"
+                        }).execute()
+                        
+                        background_tasks.add_task(
+                            send_overdue_email, 
+                            row['id'], 
+                            row['title'], 
+                            row.get('assigned_to') or 'Unassigned', 
+                            delay_days
+                        )
+                        
+                        create_notification(
+                            "risk_alert", 
+                            f"Overdue Alert Sent: {row['id']}", 
+                            f"Management notified of {delay_days}d delay on '{row['title']}'.", 
+                            row['id']
+                        )
+                        
+                        sent_count += 1
+            except Exception as e:
+                print(f"Error checking overdue for case {row.get('id')}: {e}")
+                
+    return {"status": "success", "emails_dispatched": sent_count}

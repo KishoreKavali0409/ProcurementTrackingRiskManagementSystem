@@ -12,9 +12,12 @@ import { ProcurementCase, STATUSES, CATEGORIES, DEPARTMENTS, CaseStatus, compute
 import { exportCasesToCSV } from '@/lib/export';
 import { clsx } from 'clsx';
 import { Plus, Search, RefreshCw, Download, Filter, X } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { TableRowSkeleton } from '@/components/ui/Skeleton';
 
 export default function CasesPage() {
-  const { cases, init, addCase, updateCase, deleteCase } = useStore();
+  const { cases, init, initialized, addCase, updateCase, deleteCase } = useStore();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
 
@@ -178,7 +181,25 @@ export default function CasesPage() {
           ))}
         </div>
 
-        <CaseTable cases={filtered} />
+        <ErrorBoundary>
+          {!initialized ? (
+            <div className="bg-white dark:bg-surface-alt">
+              <TableRowSkeleton />
+              <TableRowSkeleton />
+              <TableRowSkeleton />
+              <TableRowSkeleton />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-12 border-b border-enterprise-200 dark:border-enterprise-800">
+              <EmptyState 
+                title="No procurement cases match your filters" 
+                description="Try clearing your search query or adjusting active category, status, priority, and department filters." 
+              />
+            </div>
+          ) : (
+            <CaseTable cases={filtered} />
+          )}
+        </ErrorBoundary>
 
         {/* Footer */}
         <div className="px-4 py-2.5 border-t border-enterprise-200 bg-enterprise-50 flex items-center justify-between">

@@ -42,6 +42,9 @@ interface Store {
   markNotificationRead: (id: string) => Promise<void>;
   clearNotifications: () => Promise<void>;
   
+  // Realtime
+  subscribeToRealtime: () => () => void;
+  
   // Derived
   openCases: () => ProcurementCase[];
   atRiskCases: () => ProcurementCase[];
@@ -230,6 +233,70 @@ export const useStore = create<Store>((set, get) => ({
     });
     if (!res.ok) throw new Error('Failed to clear notifications');
     set({ notifications: [] });
+  },
+
+  subscribeToRealtime() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let activeChannel: any = null;
+
+    import('./supabaseClient').then(({ supabase }) => {
+      activeChannel = supabase
+        .channel('db-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'cases' },
+          async () => {
+            try {
+              const res = await fetch(`${API_BASE}/cases`);
+              if (res.ok) {
+                const data = await res.json();
+                set({ cases: data });
+              }
+            } catch (err) {
+              console.error('Realtime sync failed to load cases:', err);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'suppliers' },
+          async () => {
+            try {
+              const res = await fetch(`${API_BASE}/suppliers`);
+              if (res.ok) {
+                const data = await res.json();
+                set({ suppliers: data });
+              }
+            } catch (err) {
+              console.error('Realtime sync failed to load suppliers:', err);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications' },
+          async () => {
+            try {
+              const res = await fetch(`${API_BASE}/notifications`);
+              if (res.ok) {
+                const data = await res.json();
+                set({ notifications: data });
+              }
+            } catch (err) {
+              console.error('Realtime sync failed to load notifications:', err);
+            }
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      if (activeChannel) {
+        import('./supabaseClient').then(({ supabase }) => {
+          supabase.removeChannel(activeChannel);
+        });
+      }
+    };
   },
 
   openCases() {

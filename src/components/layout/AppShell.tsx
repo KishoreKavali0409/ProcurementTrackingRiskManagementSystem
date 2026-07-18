@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 import {
   LayoutDashboard, FolderOpen, AlertTriangle, BarChart3,
   Settings, Bell, Search, ChevronDown, Package,
-  LogOut, HelpCircle, ChevronRight, X, Users
+  LogOut, HelpCircle, ChevronRight, X, Users, Sun, Moon
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { getUser, clearUser, AuthUser } from '@/lib/auth';
@@ -32,7 +32,8 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
   const pathname = usePathname();
   const { 
     cases,
-    notifications, initNotifications, markNotificationRead, clearNotifications 
+    notifications, initNotifications, markNotificationRead, clearNotifications,
+    subscribeToRealtime
   } = useStore();
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -42,14 +43,41 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<typeof cases>([]);
   const [showSearch, setShowSearch] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const initialTheme = savedTheme || 'dark';
+    setTheme(initialTheme);
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
 
   useEffect(() => {
     const u = getUser();
     setUser(u);
     initNotifications();
     const interval = setInterval(() => initNotifications(), 15000);
-    return () => clearInterval(interval);
-  }, [initNotifications]);
+    const unsubscribe = subscribeToRealtime();
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, [initNotifications, subscribeToRealtime]);
 
   const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
   const atRisk = useMemo(() => open.filter(c => computeRisks(c).length > 0), [open]);
@@ -251,6 +279,15 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                 </div>
               )}
             </div>
+
+            {/* Theme switcher toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="w-8 h-8 flex items-center justify-center text-enterprise-400 hover:text-white rounded hover:bg-white/10 transition-all"
+              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
 
             {/* User menu */}
             <div className="relative">

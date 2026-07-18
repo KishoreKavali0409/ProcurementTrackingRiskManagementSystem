@@ -15,6 +15,11 @@ load_dotenv()
 supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL") or ""
 supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") or os.environ.get("SUPABASE_KEY") or ""
 
+# Resend configs
+resend_api_key = os.environ.get("RESEND_API_KEY") or ""
+resend_from = os.environ.get("RESEND_FROM_EMAIL") or "onboarding@resend.dev"
+resend_to = os.environ.get("RESEND_TO_EMAIL") or ""
+
 class DummyClient:
     def table(self, *args, **kwargs):
         raise RuntimeError(
