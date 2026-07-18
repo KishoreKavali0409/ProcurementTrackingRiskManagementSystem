@@ -2,11 +2,12 @@
 // src/components/cases/CaseFormModal.tsx
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { ProcurementCase, STATUSES, CATEGORIES, DEPARTMENTS, PRIORITIES, DOCUMENT_TYPES, generateId } from '@/lib/data';
 import { Button } from '@/components/ui/Button';
 import { clsx } from 'clsx';
 import { getUser, canEdit, canApprove, AuthUser } from '@/lib/auth';
+import { API_BASE } from '@/lib/store';
 
 interface Props {
   open: boolean;
@@ -90,6 +91,44 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
   const [user, setUser] = useState<AuthUser | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<'basic' | 'financial' | 'docs'>('basic');
+
+  const [showAiParser, setShowAiParser] = useState(false);
+  const [emailText, setEmailText] = useState('');
+  const [parsingEmail, setParsingEmail] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  async function handleParseEmail() {
+    if (!emailText.trim()) return;
+    setParsingEmail(true);
+    setAiError('');
+    try {
+      const res = await fetch(`${API_BASE}/ai/parse-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailText }),
+      });
+      if (!res.ok) throw new Error('AI parse request failed');
+      const data = await res.json();
+      
+      setForm(f => ({
+        ...f,
+        title: data.title || f.title,
+        category: data.category || f.category,
+        department: data.department || f.department,
+        priority: data.priority || f.priority,
+        estimatedValue: data.estimatedValue !== undefined ? String(data.estimatedValue) : f.estimatedValue,
+        approvedBudget: data.approvedBudget !== undefined ? String(data.approvedBudget) : f.approvedBudget,
+        expectedClosure: data.expectedClosure || f.expectedClosure,
+      }));
+      setShowAiParser(false);
+      setEmailText('');
+    } catch (err) {
+      console.error(err);
+      setAiError('Failed to parse email. Please verify backend connection and API key configuration.');
+    } finally {
+      setParsingEmail(false);
+    }
+  }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -196,6 +235,59 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
           <fieldset disabled={isReadOnly} className="contents">
           {activeTab === 'basic' && (
             <div className="space-y-3">
+              {!editCase && !isReadOnly && (
+                <div className="mb-3">
+                  {!showAiParser ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAiParser(true)}
+                      className="w-full py-2 px-3 border border-dashed border-brand/50 bg-brand/5 hover:bg-brand/10 text-brand text-xs font-semibold rounded flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Sparkles size={13} className="text-brand animate-pulse" />
+                      AI Auto-Fill from Email Sourcing Document
+                    </button>
+                  ) : (
+                    <div className="bg-enterprise-50 dark:bg-surface-alt p-3.5 border border-brand/20 rounded space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-brand flex items-center gap-1.5">
+                          <Sparkles size={13} className="text-brand" />
+                          AI Email-to-Case Extractor
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => { setShowAiParser(false); setAiError(''); }}
+                          className="text-text-secondary hover:text-text-primary text-[11px] font-medium"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-text-secondary leading-relaxed">
+                        Paste the raw request or sourcing email text below. Gemini AI will automatically extract case title, category, budget, department, priority and closure timeline.
+                      </p>
+                      <textarea
+                        rows={4}
+                        className="w-full p-2.5 text-xs border border-enterprise-200 dark:border-enterprise-800 rounded focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white dark:bg-surface text-text-primary"
+                        placeholder="e.g. Hi Priya, we need to procure 50 units of industrial steel sheets for the Manufacturing division. Expected value is 45,000 INR with a budget of 50,000 INR. Need this completed by August 15..."
+                        value={emailText}
+                        onChange={e => setEmailText(e.target.value)}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          type="button"
+                          onClick={handleParseEmail}
+                          disabled={parsingEmail || !emailText.trim()}
+                        >
+                          {parsingEmail ? 'Extracting...' : 'Extract & Auto-Fill'}
+                        </Button>
+                      </div>
+                      {aiError && <p className="text-[11px] text-danger mt-1">{aiError}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Input label="Case Title" id="f-title" required placeholder="e.g. Annual SAP License Renewal" value={form.title} onChange={e => set('title', e.target.value)} />
               {errors.title && <p className="text-xs text-danger -mt-2">{errors.title}</p>}
 

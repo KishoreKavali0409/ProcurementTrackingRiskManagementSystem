@@ -20,6 +20,9 @@ resend_api_key = os.environ.get("RESEND_API_KEY") or ""
 resend_from = os.environ.get("RESEND_FROM_EMAIL") or "onboarding@resend.dev"
 resend_to = os.environ.get("RESEND_TO_EMAIL") or ""
 
+# Gemini configs
+gemini_api_key = os.environ.get("GEMINI_API_KEY") or ""
+
 class DummyClient:
     def table(self, *args, **kwargs):
         raise RuntimeError(

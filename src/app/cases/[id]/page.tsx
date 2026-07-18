@@ -9,7 +9,7 @@ import { Panel, PanelHeader, Field, FieldGroup, ProgressBar } from '@/components
 import { Tag } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { CaseFormModal } from '@/components/cases/CaseFormModal';
-import { useStore } from '@/lib/store';
+import { useStore, API_BASE } from '@/lib/store';
 import { getUser, canEdit, canApprove, AuthUser } from '@/lib/auth';
 import {
   ProcurementCase, computeRisks, getNextActions,
@@ -18,7 +18,7 @@ import {
 } from '@/lib/data';
 import {
   Edit2, Plus, ArrowLeft, CheckCircle, XCircle, Clock,
-  TrendingUp, FileText, AlertTriangle, Zap, Users
+  TrendingUp, FileText, AlertTriangle, Zap, Users, Sparkles, Loader2, RefreshCw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -84,6 +84,45 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
   const [deliveryDays, setDeliveryDays] = useState('');
   const [paymentTerms, setPaymentTerms] = useState('Net 30');
   const [notes, setNotes] = useState('');
+
+  // AI Advisor State
+  const [aiRisk, setAiRisk] = useState<{ summary: string; explanations: { riskType: string; severity: string; explanation: string }[]; recommendations: string[] } | null>(null);
+  const [loadingRisk, setLoadingRisk] = useState(false);
+  const [aiActions, setAiActions] = useState<{ actions: { action: string; reason: string; priority: string }[] } | null>(null);
+  const [loadingActions, setLoadingActions] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  async function fetchAiRisk() {
+    setLoadingRisk(true);
+    setAiError('');
+    try {
+      const res = await fetch(`${API_BASE}/ai/analyze-risk/${c.id}`, { method: 'POST' });
+      if (!res.ok) throw new Error('AI Risk analysis failed');
+      const data = await res.json();
+      setAiRisk(data);
+    } catch (err) {
+      console.error(err);
+      setAiError('Failed to get AI risk analysis.');
+    } finally {
+      setLoadingRisk(false);
+    }
+  }
+
+  async function fetchAiActions() {
+    setLoadingActions(true);
+    setAiError('');
+    try {
+      const res = await fetch(`${API_BASE}/ai/next-actions/${c.id}`, { method: 'POST' });
+      if (!res.ok) throw new Error('AI Next Actions failed');
+      const data = await res.json();
+      setAiActions(data);
+    } catch (err) {
+      console.error(err);
+      setAiError('Failed to get AI actions.');
+    } finally {
+      setLoadingActions(false);
+    }
+  }
 
   // Fetch bidders & quotations on mount/update
   useEffect(() => {
@@ -481,6 +520,114 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
 
         {/* RIGHT: 4 cols sidebar */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
+          {/* AI Sourcing Advisor */}
+          <Panel className="border-brand/35 bg-brand-light/5">
+            <PanelHeader
+              title="AI Sourcing Advisor"
+              icon={<Sparkles size={15} className="text-brand animate-pulse" />}
+            />
+            
+            {!aiRisk && !aiActions ? (
+              <div className="p-1.5 text-center">
+                <p className="text-xs text-text-secondary leading-relaxed mb-3">
+                  Activate Gemini AI to generate context-aware risk summaries, mitigation advice, and actionable next steps.
+                </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  className="w-full flex items-center justify-center gap-1.5"
+                  onClick={() => { fetchAiRisk(); fetchAiActions(); }}
+                  disabled={loadingRisk || loadingActions}
+                >
+                  {(loadingRisk || loadingActions) ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      Analyzing Case Sourcing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} />
+                      Generate AI Advisor Insights
+                    </>
+                  )}
+                </Button>
+                {aiError && <p className="text-[11px] text-danger mt-2">{aiError}</p>}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Risk audit */}
+                {aiRisk && (
+                  <div className="space-y-2">
+                    <div className="text-[11px] font-semibold text-brand uppercase tracking-wider flex items-center gap-1">
+                      <span>⚠️</span> AI Risk Audit
+                    </div>
+                    <p className="text-xs text-text-primary leading-relaxed bg-white dark:bg-surface-alt p-2.5 rounded border border-enterprise-150 shadow-xs">
+                      {aiRisk.summary}
+                    </p>
+                    
+                    {aiRisk.explanations && aiRisk.explanations.length > 0 && (
+                      <div className="space-y-1.5">
+                        {aiRisk.explanations.map((exp, idx) => (
+                          <div key={idx} className="text-[11px] p-2 bg-white dark:bg-surface-alt rounded border border-enterprise-100 flex gap-2">
+                            <span className={clsx(
+                              "font-bold uppercase text-[9px] px-1 rounded flex-shrink-0 self-start mt-0.5",
+                              exp.severity === 'critical' ? 'bg-danger-bg text-danger' : 'bg-warning-bg text-warning'
+                            )}>
+                              {exp.severity}
+                            </span>
+                            <div>
+                              <span className="font-semibold text-text-primary block">{exp.riskType}</span>
+                              <span className="text-text-secondary">{exp.explanation}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                {aiActions && (
+                  <div className="space-y-2 pt-2.5 border-t border-enterprise-200">
+                    <div className="text-[11px] font-semibold text-brand uppercase tracking-wider flex items-center gap-1">
+                      <span>🎯</span> AI Next Best Actions
+                    </div>
+                    <div className="space-y-1.5">
+                      {aiActions.actions.map((act, idx) => (
+                        <div key={idx} className="p-2.5 bg-white dark:bg-surface-alt rounded border border-enterprise-100 text-xs flex gap-2.5">
+                          <span className="w-5 h-5 rounded-full bg-brand/10 text-brand text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <span className="font-bold text-text-primary block">{act.action}</span>
+                            <span className="text-[11px] text-text-secondary block mt-0.5 leading-relaxed">{act.reason}</span>
+                            <span className={clsx(
+                              "inline-block text-[9px] font-bold px-1 rounded mt-1.5 uppercase",
+                              act.priority === 'High' ? 'bg-danger-bg text-danger' : act.priority === 'Medium' ? 'bg-warning-bg text-warning' : 'bg-enterprise-100 text-text-secondary'
+                            )}>
+                              Priority: {act.priority}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => { fetchAiRisk(); fetchAiActions(); }}
+                    className="text-text-muted hover:text-brand text-[10px] font-semibold flex items-center gap-1 bg-transparent border-0 cursor-pointer"
+                    disabled={loadingRisk || loadingActions}
+                  >
+                    <RefreshCw size={10} className={clsx(loadingRisk || loadingActions ? "animate-spin" : "")} />
+                    Regenerate Insights
+                  </button>
+                </div>
+              </div>
+            )}
+          </Panel>
+
           {/* Quick Metrics */}
           <Panel>
             <PanelHeader title="Case Metrics" />

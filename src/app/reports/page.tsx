@@ -5,8 +5,9 @@ import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
 import { useStore } from '@/lib/store';
 import { computeRisks, getNextActions, caseAge, formatCurrency, STATUSES } from '@/lib/data';
-import { FileText, Copy, RefreshCw, AlertTriangle, ClipboardList } from 'lucide-react';
+import { FileText, Copy, RefreshCw, AlertTriangle, ClipboardList, Sparkles, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { API_BASE } from '@/lib/store';
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text);
@@ -21,7 +22,27 @@ export default function ReportsPage() {
   const { cases, init } = useStore();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
-  const [activeTab, setActiveTab] = useState<'weekly' | 'risk' | 'status'>('weekly');
+  const [activeTab, setActiveTab] = useState<'weekly' | 'risk' | 'status' | 'aiBrief'>('weekly');
+
+  const [aiBriefContent, setAiBriefContent] = useState('');
+  const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  async function fetchAiBrief() {
+    setGeneratingAi(true);
+    setAiError('');
+    try {
+      const res = await fetch(`${API_BASE}/ai/weekly-brief`, { method: 'POST' });
+      if (!res.ok) throw new Error('AI brief generation failed');
+      const data = await res.json();
+      setAiBriefContent(data.brief);
+    } catch (err) {
+      console.error(err);
+      setAiError('Failed to generate AI executive summary. Please check your server and API key.');
+    } finally {
+      setGeneratingAi(false);
+    }
+  }
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -145,9 +166,16 @@ export default function ReportsPage() {
     { id: 'weekly' as const, label: 'Weekly Executive Summary', icon: FileText },
     { id: 'risk' as const, label: 'At-Risk Cases Report', icon: AlertTriangle },
     { id: 'status' as const, label: 'Status Snapshot', icon: ClipboardList },
+    { id: 'aiBrief' as const, label: '✨ AI Executive Briefing', icon: Sparkles },
   ];
 
-  const reportContent = activeTab === 'weekly' ? weeklyReport() : activeTab === 'risk' ? riskReport() : statusReport();
+  const reportContent = activeTab === 'weekly' 
+    ? weeklyReport() 
+    : activeTab === 'risk' 
+      ? riskReport() 
+      : activeTab === 'status' 
+        ? statusReport() 
+        : aiBriefContent;
 
   return (
     <AppShell
@@ -199,13 +227,50 @@ export default function ReportsPage() {
 
         {/* Report content */}
         <div className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-text-muted">Auto-generated report — copy or export for stakeholder use</span>
-            <Button icon={Copy} size="xs" onClick={() => copyToClipboard(reportContent)}>Copy</Button>
-          </div>
-          <pre className="w-full bg-enterprise-50 border border-enterprise-200 rounded p-4 text-xs font-mono text-text-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap max-h-[520px] overflow-y-auto">
-            {reportContent}
-          </pre>
+          {activeTab === 'aiBrief' && !aiBriefContent ? (
+            <div className="text-center py-12 max-w-md mx-auto space-y-4">
+              <div className="w-12 h-12 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto animate-pulse">
+                <Sparkles size={22} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-text-primary mb-1">Generate AI Stakeholder Briefing</h3>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Gemini AI will synthesize active pipelines, budget health thresholds, and critical bottlenecks into an executive markdown brief.
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                onClick={fetchAiBrief}
+                disabled={generatingAi}
+                className="mx-auto"
+              >
+                {generatingAi ? (
+                  <span className="flex items-center gap-1.5 justify-center">
+                    <Loader2 size={13} className="animate-spin" />
+                    Analyzing & Synthesizing Sourcing...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 justify-center">
+                    <Sparkles size={13} />
+                    Generate AI Summary
+                  </span>
+                )}
+              </Button>
+              {aiError && <p className="text-xs text-danger mt-1">{aiError}</p>}
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-text-muted">
+                  {activeTab === 'aiBrief' ? 'AI-Synthesized Brief — copy or review executive summary' : 'Auto-generated report — copy or export for stakeholder use'}
+                </span>
+                <Button icon={Copy} size="xs" onClick={() => copyToClipboard(reportContent)}>Copy</Button>
+              </div>
+              <pre className="w-full bg-enterprise-50 dark:bg-surface-alt border border-enterprise-200 dark:border-enterprise-800 rounded p-4 text-xs font-mono text-text-secondary leading-relaxed overflow-x-auto whitespace-pre-wrap max-h-[520px] overflow-y-auto">
+                {reportContent}
+              </pre>
+            </>
+          )}
         </div>
       </Panel>
     </AppShell>
