@@ -236,12 +236,13 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   subscribeToRealtime() {
+    const channelName = `db-changes-${Math.random().toString(36).substring(2, 9)}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let activeChannel: any = null;
 
     import('./supabaseClient').then(({ supabase }) => {
       activeChannel = supabase
-        .channel('db-changes')
+        .channel(channelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'cases' },
@@ -291,11 +292,19 @@ export const useStore = create<Store>((set, get) => ({
     });
 
     return () => {
-      if (activeChannel) {
-        import('./supabaseClient').then(({ supabase }) => {
+      import('./supabaseClient').then(({ supabase }) => {
+        if (activeChannel) {
           supabase.removeChannel(activeChannel);
-        });
-      }
+        } else {
+          // If connection was still loading when component unmounted, find by name/topic and remove
+          const channels = supabase.getChannels() as unknown[] as Record<string, unknown>[];
+          const found = channels.find(c => c.topic === channelName || c.name === channelName);
+          if (found) {
+            const chan = found as unknown as import('@supabase/supabase-js').RealtimeChannel;
+            supabase.removeChannel(chan);
+          }
+        }
+      });
     };
   },
 
