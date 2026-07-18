@@ -5,7 +5,8 @@ import {
   ProcurementCase, 
   Supplier, 
   Quotation, 
-  computeRisks
+  computeRisks,
+  Notification
 } from './data';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -13,8 +14,10 @@ const API_BASE = 'http://localhost:8000/api';
 interface Store {
   cases: ProcurementCase[];
   suppliers: Supplier[];
+  notifications: Notification[];
   initialized: boolean;
   suppliersInitialized: boolean;
+  notificationsInitialized: boolean;
   loading: boolean;
   
   init: () => Promise<void>;
@@ -33,6 +36,11 @@ interface Store {
   getBidders: (caseId: string) => Promise<Supplier[]>;
   submitQuotation: (q: Omit<Quotation, 'id' | 'submittedAt'>) => Promise<void>;
   getQuotations: (caseId: string) => Promise<Quotation[]>;
+  
+  // Notifications
+  initNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  clearNotifications: () => Promise<void>;
   
   // Derived
   openCases: () => ProcurementCase[];
@@ -190,6 +198,38 @@ export const useStore = create<Store>((set, get) => ({
     const res = await fetch(`${API_BASE}/quotations/case/${caseId}`);
     if (!res.ok) throw new Error('Failed to load quotations');
     return await res.json();
+  },
+
+  notifications: [],
+  notificationsInitialized: false,
+
+  async initNotifications() {
+    try {
+      const res = await fetch(`${API_BASE}/notifications`);
+      if (!res.ok) throw new Error('Failed to load notifications');
+      const data = await res.json();
+      set({ notifications: data, notificationsInitialized: true });
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    }
+  },
+
+  async markNotificationRead(id) {
+    const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+      method: 'PUT'
+    });
+    if (!res.ok) throw new Error('Failed to mark notification as read');
+    set({
+      notifications: get().notifications.map(n => n.id === id ? { ...n, read: true } : n)
+    });
+  },
+
+  async clearNotifications() {
+    const res = await fetch(`${API_BASE}/notifications/clear`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Failed to clear notifications');
+    set({ notifications: [] });
   },
 
   openCases() {

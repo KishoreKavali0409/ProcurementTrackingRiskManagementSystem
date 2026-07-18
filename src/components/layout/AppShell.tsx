@@ -1,7 +1,5 @@
 'use client';
-// src/components/layout/AppShell.tsx — v2: auth-aware, with critical alert banner
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -32,10 +30,14 @@ interface Props {
 
 export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Props) {
   const pathname = usePathname();
-  const { cases, openCases, atRiskCases, criticalCases } = useStore();
+  const { 
+    cases,
+    notifications, initNotifications, markNotificationRead, clearNotifications 
+  } = useStore();
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notiOpen, setNotiOpen] = useState(false);
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<typeof cases>([]);
@@ -44,11 +46,14 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
   useEffect(() => {
     const u = getUser();
     setUser(u);
-  }, []);
+    initNotifications();
+    const interval = setInterval(() => initNotifications(), 15000);
+    return () => clearInterval(interval);
+  }, [initNotifications]);
 
-  const open = openCases();
-  const atRisk = atRiskCases();
-  const critical = criticalCases();
+  const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
+  const atRisk = useMemo(() => open.filter(c => computeRisks(c).length > 0), [open]);
+  const critical = useMemo(() => open.filter(c => computeRisks(c).some(r => r.severity === 'critical')), [open]);
 
   // Global search
   useEffect(() => {
@@ -63,7 +68,6 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
       ).slice(0, 6)
     );
   }, [search, cases]);
-
 
   const showCriticalBanner = critical.length > 0 && !alertDismissed;
 
@@ -191,12 +195,62 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
               </Link>
             )}
 
-            <button className="relative w-8 h-8 flex items-center justify-center text-enterprise-400 hover:text-white rounded hover:bg-white/10 transition-all" title="Notifications">
-              <Bell size={16} className="pointer-events-none" />
-              {atRisk.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full ring-1 ring-shell pointer-events-none" />
+            <div className="relative">
+              <button 
+                onClick={() => { setNotiOpen(!notiOpen); setUserMenuOpen(false); }}
+                className={clsx(
+                  "relative w-8 h-8 flex items-center justify-center rounded hover:bg-white/10 transition-all",
+                  notiOpen ? "text-white bg-white/10" : "text-enterprise-400 hover:text-white"
+                )}
+                title="Notifications"
+              >
+                <Bell size={16} className="pointer-events-none" />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[12px] h-3 px-0.5 bg-danger text-white text-[8px] font-bold rounded-full flex items-center justify-center pointer-events-none">
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+              {notiOpen && (
+                <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-enterprise-200 rounded shadow-md z-50 overflow-hidden text-slate-900">
+                  <div className="px-3 py-2 border-b border-enterprise-100 bg-enterprise-50 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-text-primary">
+                      Notifications ({notifications.filter(n => !n.read).length} unread)
+                    </span>
+                    {notifications.length > 0 && (
+                      <button 
+                        onClick={() => { clearNotifications(); setNotiOpen(false); }} 
+                         className="text-[10px] text-brand hover:underline font-medium"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-enterprise-50">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-text-muted">No notifications</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div 
+                          key={n.id} 
+                          onClick={() => { markNotificationRead(n.id); }}
+                          className={clsx(
+                            "p-3 text-left cursor-pointer transition-colors hover:bg-enterprise-50",
+                            !n.read && "bg-brand-light/20 font-medium"
+                          )}
+                        >
+                          <div className="text-xs text-text-primary mb-0.5">{n.title}</div>
+                          <div className="text-2xs text-text-secondary leading-snug">{n.message}</div>
+                          <div className="text-[9px] text-text-muted mt-1">
+                            {n.createdAt ? new Date(n.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {/* User menu */}
             <div className="relative">

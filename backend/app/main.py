@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from .routers import cases, suppliers, quotations, risk
+from .routers import cases, suppliers, quotations, risk, notifications
 
 app = FastAPI(title="ProcureTrack Enterprise API", version="1.0.0")
 
@@ -28,6 +28,7 @@ app.include_router(cases.router, prefix="/api")
 app.include_router(suppliers.router, prefix="/api")
 app.include_router(quotations.router, prefix="/api")
 app.include_router(risk.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 @app.get("/api/health")
 def health_check():

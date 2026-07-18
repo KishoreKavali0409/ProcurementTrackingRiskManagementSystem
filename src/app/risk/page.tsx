@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
 import { Panel, PanelHeader } from '@/components/ui/Panel';
@@ -17,19 +16,19 @@ export default function RiskMonitorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
 
-  const open = cases.filter(c => c.status !== 'GRN / Closed');
-  const casesWithRisks = open
+  const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
+  const casesWithRisks = useMemo(() => open
     .map(c => ({ c, risks: computeRisks(c) }))
     .filter(({ risks }) => risks.length > 0)
     .sort((a, b) => {
       const aC = a.risks.some(r => r.severity === 'critical') ? 1 : 0;
       const bC = b.risks.some(r => r.severity === 'critical') ? 1 : 0;
       return bC - aC || b.risks.length - a.risks.length;
-    });
+    }), [open]);
 
-  const critCount = casesWithRisks.filter(({ risks }) => risks.some(r => r.severity === 'critical')).length;
-  const warnCount = casesWithRisks.length - critCount;
-  const healthyCount = open.length - casesWithRisks.length;
+  const critCount = useMemo(() => casesWithRisks.filter(({ risks }) => risks.some(r => r.severity === 'critical')).length, [casesWithRisks]);
+  const warnCount = useMemo(() => casesWithRisks.length - critCount, [casesWithRisks, critCount]);
+  const healthyCount = useMemo(() => open.length - casesWithRisks.length, [open, casesWithRisks]);
 
   const RISK_TYPES = [
     { type: 'Overdue', desc: 'Expected closure date has passed', sev: 'critical' },

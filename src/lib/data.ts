@@ -182,3 +182,14 @@ export interface Quotation {
   submittedAt: string;
   supplier?: Supplier;
 }
+
+export interface Notification {
+  id: string;
+  userId?: string | null;
+  caseId?: string | null;
+  type: string;
+  title: string;
+  message?: string;
+  read: boolean;
+  createdAt: string;
+}

@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Panel } from '@/components/ui/Panel';
 import { Button } from '@/components/ui/Button';
@@ -26,14 +25,15 @@ export default function ReportsPage() {
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-  const open = cases.filter(c => c.status !== 'GRN / Closed');
-  const closed = cases.filter(c => c.status === 'GRN / Closed');
-  const atRisk = open.filter(c => computeRisks(c).length > 0);
-  const critical = open.filter(c => computeRisks(c).some(r => r.severity === 'critical'));
-  const ages = open.map(caseAge);
-  const avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0;
-  const totalValue = open.reduce((s, c) => s + (c.estimatedValue || 0), 0);
-  const overBudget = open.filter(c => c.estimatedValue > c.approvedBudget);
+  
+  const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
+  const closed = useMemo(() => cases.filter(c => c.status === 'GRN / Closed'), [cases]);
+  const atRisk = useMemo(() => open.filter(c => computeRisks(c).length > 0), [open]);
+  const critical = useMemo(() => open.filter(c => computeRisks(c).some(r => r.severity === 'critical')), [open]);
+  const ages = useMemo(() => open.map(caseAge), [open]);
+  const avgAge = useMemo(() => ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0, [ages]);
+  const totalValue = useMemo(() => open.reduce((s, c) => s + (c.estimatedValue || 0), 0), [open]);
+  const overBudget = useMemo(() => open.filter(c => c.estimatedValue > c.approvedBudget), [open]);
 
   function weeklyReport() {
     const lines: string[] = [];

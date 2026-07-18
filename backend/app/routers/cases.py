@@ -4,6 +4,7 @@ from datetime import datetime
 from ..db import supabase
 from ..schemas.case import CaseCreate, CaseUpdate, CaseResponse, CaseUpdateSchema
 from ..schemas.supplier import SupplierResponse
+from .notifications import create_notification
 
 router = APIRouter(prefix="/cases", tags=["cases"])
 
@@ -123,6 +124,14 @@ def create_case(case_in: CaseCreate):
         "author": case_in.assigned_to or "System"
     }).execute()
     
+    # 4. Trigger global notification
+    create_notification(
+        "status_change", 
+        f"Case Created: {new_id}", 
+        f"New case has been opened: '{case_in.title}' (Assigned: {case_in.assigned_to or 'Unassigned'}).", 
+        new_id
+    )
+    
     # Fetch complete case to return
     full_res = supabase.table('cases').select('*, case_updates(*), document_checklist(*)').eq('id', new_id).execute()
     return map_db_case(full_res.data[0])
@@ -168,6 +177,12 @@ def update_case(id: str, case_in: CaseUpdate):
             "text": f"Status transitioned from '{old_status}' to '{case_in.status}'.",
             "author": assigned_to
         }).execute()
+        create_notification(
+            "status_change", 
+            f"Status Updated: {id}", 
+            f"Case transitioned to '{case_in.status}' (previously '{old_status}').", 
+            id
+        )
         
     # 3. Update document checklist
     if case_in.documents is not None:
@@ -239,6 +254,12 @@ def set_bidders(id: str, payload: Dict[str, List[str]]):
             "text": f"Bidders defined: {len(supplier_ids)} suppliers assigned.",
             "author": "System"
         }).execute()
+        create_notification(
+            "status_change", 
+            f"Bidders Defined: {id}", 
+            f"{len(supplier_ids)} suppliers have been assigned as bidders.", 
+            id
+        )
         
     return {"status": "success"}
 

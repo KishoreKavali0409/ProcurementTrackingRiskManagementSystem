@@ -3,6 +3,7 @@ from typing import List, Dict
 from datetime import datetime
 from ..db import supabase
 from ..schemas.quotation import QuotationCreate, QuotationResponse
+from .notifications import create_notification
 
 router = APIRouter(prefix="/quotations", tags=["quotations"])
 
@@ -79,6 +80,12 @@ def create_quotation(quote_in: QuotationCreate):
                 "text": f"Offers Received: Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
                 "author": "System"
             }).execute()
+            create_notification(
+                "status_change", 
+                f"Offers Received: {quote_in.case_id}", 
+                f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
+                quote_in.case_id
+            )
         else:
             # Just log the additional quotation submission
             supabase.table('case_updates').insert({
@@ -86,5 +93,11 @@ def create_quotation(quote_in: QuotationCreate):
                 "text": f"New quote submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
                 "author": "System"
             }).execute()
+            create_notification(
+                "status_change", 
+                f"New Quotation: {quote_in.case_id}", 
+                f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
+                quote_in.case_id
+            )
             
     return mapped_quote

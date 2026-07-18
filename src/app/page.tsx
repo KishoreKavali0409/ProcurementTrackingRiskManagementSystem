@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -29,16 +28,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { cases, init, openCases, atRiskCases, criticalCases } = useStore();
+  const { cases, init } = useStore();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { init(); }, []);
 
-  const open = openCases();
-  const atRisk = atRiskCases();
-  const closed = cases.filter(c => c.status === 'GRN / Closed');
-  const ages = open.map(caseAge);
-  const avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0;
-  const totalValue = open.reduce((s, c) => s + (c.estimatedValue || 0), 0);
+  const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
+  const atRisk = useMemo(() => open.filter(c => computeRisks(c).length > 0), [open]);
+  const critical = useMemo(() => open.filter(c => computeRisks(c).some(r => r.severity === 'critical')), [open]);
+  const closed = useMemo(() => cases.filter(c => c.status === 'GRN / Closed'), [cases]);
+  const ages = useMemo(() => open.map(caseAge), [open]);
+  const avgAge = useMemo(() => ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0, [ages]);
+  const totalValue = useMemo(() => open.reduce((s, c) => s + (c.estimatedValue || 0), 0), [open]);
 
   // Ageing buckets
   const ageBuckets = [
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         <KpiCard label="Avg Age (Days)" value={avgAge} icon={Clock} variant="warning"
           sub={`${ageBuckets[3].count} over 30 days`} />
         <KpiCard label="At-Risk Cases" value={atRisk.length} icon={AlertTriangle} variant="danger"
-          sub={`${criticalCases().length} critical`} trend={atRisk.length > 2 ? 'down' : 'neutral'} />
+          sub={`${critical.length} critical`} trend={atRisk.length > 2 ? 'down' : 'neutral'} />
         <KpiCard label="Closed Cases" value={closed.length} icon={CheckCircle} variant="success"
           sub={`Pipeline: ${formatCurrency(totalValue)}`} />
       </div>
