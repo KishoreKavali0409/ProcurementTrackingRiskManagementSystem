@@ -64,40 +64,51 @@ def create_quotation(quote_in: QuotationCreate):
     supplier_name = mapped_quote["supplier"]["name"] if mapped_quote.get("supplier") else "Supplier"
     
     # 2. Advance case status automatically to "Offers Received" if currently in lower stage
-    case_res = supabase.table('cases').select('status').eq('id', quote_in.case_id).execute()
-    if case_res.data:
-        current_status = case_res.data[0]['status']
-        if current_status in ['RFQ Draft', 'Bidders Defined', 'RFQ Shared']:
-            today_str = datetime.now().date().isoformat()
-            supabase.table('cases').update({
-                "status": "Offers Received",
-                "last_updated": today_str
-            }).eq('id', quote_in.case_id).execute()
-            
-            # Log status change in updates timeline
-            supabase.table('case_updates').insert({
-                "case_id": quote_in.case_id,
-                "text": f"Offers Received: Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
-                "author": "System"
-            }).execute()
-            create_notification(
-                "status_change", 
-                f"Offers Received: {quote_in.case_id}", 
-                f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
-                quote_in.case_id
-            )
-        else:
-            # Just log the additional quotation submission
-            supabase.table('case_updates').insert({
-                "case_id": quote_in.case_id,
-                "text": f"New quote submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
-                "author": "System"
-            }).execute()
-            create_notification(
-                "status_change", 
-                f"New Quotation: {quote_in.case_id}", 
-                f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
-                quote_in.case_id
-            )
+    try:
+        case_res = supabase.table('cases').select('status').eq('id', quote_in.case_id).execute()
+        if case_res.data:
+            current_status = case_res.data[0]['status']
+            if current_status in ['RFQ Draft', 'Bidders Defined', 'RFQ Shared']:
+                today_str = datetime.now().date().isoformat()
+                supabase.table('cases').update({
+                    "status": "Offers Received",
+                    "last_updated": today_str
+                }).eq('id', quote_in.case_id).execute()
+                
+                # Log status change in updates timeline
+                try:
+                    supabase.table('case_updates').insert({
+                        "case_id": quote_in.case_id,
+                        "text": f"Offers Received: Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
+                        "author": "System"
+                    }).execute()
+                except Exception as e:
+                    print(f"Warning: Failed to log quotation update on transition: {e}")
+                    
+                create_notification(
+                    "status_change", 
+                    f"Offers Received: {quote_in.case_id}", 
+                    f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
+                    quote_in.case_id
+                )
+            else:
+                # Just log the additional quotation submission
+                try:
+                    supabase.table('case_updates').insert({
+                        "case_id": quote_in.case_id,
+                        "text": f"New quote submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.",
+                        "author": "System"
+                    }).execute()
+                except Exception as e:
+                    print(f"Warning: Failed to log additional quotation update: {e}")
+                    
+                create_notification(
+                    "status_change", 
+                    f"New Quotation: {quote_in.case_id}", 
+                    f"Quotation submitted by {supplier_name} for ₹{quote_in.total_price:,.2f}.", 
+                    quote_in.case_id
+                )
+    except Exception as e:
+        print(f"Warning: Failed to process quotation status promotion: {e}")
             
     return mapped_quote

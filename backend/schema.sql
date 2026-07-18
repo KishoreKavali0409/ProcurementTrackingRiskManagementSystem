@@ -65,3 +65,12 @@ CREATE POLICY "Enable all operations for all users" ON public.case_suppliers FOR
 
 ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all operations for all users" ON public.quotations FOR ALL USING (true);
+
+ALTER TABLE public.document_checklist ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all operations for all users" ON public.document_checklist FOR ALL USING (true);
+
+ALTER TABLE public.case_updates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all operations for all users" ON public.case_updates FOR ALL USING (true);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all operations for all users" ON public.notifications FOR ALL USING (true);

@@ -28,6 +28,19 @@ def map_db_case(row: dict) -> dict:
         })
     updates.sort(key=lambda x: x['date'])
     
+    # Parse budget_category from tags
+    tags = row.get('tags') or []
+    budget_cat = "standard"
+    clean_tags = []
+    for t in tags:
+        if t.startswith("budget:"):
+            try:
+                budget_cat = t.split(":")[1]
+            except IndexError:
+                pass
+        else:
+            clean_tags.append(t)
+            
     return {
         'id': row['id'],
         'title': row['title'],
@@ -47,8 +60,8 @@ def map_db_case(row: dict) -> dict:
         'description': row.get('description') or "",
         'documents': documents,
         'updates': updates,
-        'tags': row.get('tags') or [],
-        'budgetCategory': row.get('budget_category') or "standard"
+        'tags': clean_tags,
+        'budgetCategory': budget_cat
     }
 
 def generate_case_id() -> str:
@@ -81,6 +94,12 @@ def create_case(case_in: CaseCreate):
     new_id = generate_case_id()
     today_str = datetime.now().date().isoformat()
     
+    # Combine budget_category into tags list
+    in_tags = case_in.tags or []
+    budget_cat = case_in.budget_category or "standard"
+    db_tags = [t for t in in_tags if not t.startswith("budget:")]
+    db_tags.append(f"budget:{budget_cat}")
+    
     # 1. Insert case
     db_case = {
         "id": new_id,
@@ -99,8 +118,7 @@ def create_case(case_in: CaseCreate):
         "opened_date": case_in.opened_date or today_str,
         "expected_closure": case_in.expected_closure or None,
         "last_updated": today_str,
-        "tags": case_in.tags or [],
-        "budget_category": case_in.budget_category or "standard"
+        "tags": db_tags
     }
     
     res = supabase.table('cases').insert(db_case).execute()
@@ -108,22 +126,28 @@ def create_case(case_in: CaseCreate):
         raise HTTPException(status_code=500, detail="Failed to create case")
         
     # 2. Insert document checklist
-    checklist_rows = []
-    docs_payload = case_in.documents or {}
-    for doc in DOCUMENT_TYPES:
-        checklist_rows.append({
-            "case_id": new_id,
-            "doc_type": doc,
-            "received": docs_payload.get(doc, False)
-        })
-    supabase.table('document_checklist').insert(checklist_rows).execute()
-    
+    try:
+        checklist_rows = []
+        docs_payload = case_in.documents or {}
+        for doc in DOCUMENT_TYPES:
+            checklist_rows.append({
+                "case_id": new_id,
+                "doc_type": doc,
+                "received": docs_payload.get(doc, False)
+            })
+        supabase.table('document_checklist').insert(checklist_rows).execute()
+    except Exception as e:
+        print(f"Warning: Failed to insert document checklist: {e}")
+        
     # 3. Log initial update note
-    supabase.table('case_updates').insert({
-        "case_id": new_id,
-        "text": "Case created.",
-        "author": case_in.assigned_to or "System"
-    }).execute()
+    try:
+        supabase.table('case_updates').insert({
+            "case_id": new_id,
+            "text": "Case created.",
+            "author": case_in.assigned_to or "System"
+        }).execute()
+    except Exception as e:
+        print(f"Warning: Failed to log initial case update: {e}")
     
     # 4. Trigger global notification
     create_notification(
@@ -139,13 +163,14 @@ def create_case(case_in: CaseCreate):
 
 @router.put("/{id}")
 def update_case(id: str, case_in: CaseUpdate):
-    # Check if case exists and fetch current status & assigned_to for transition logging
-    chk = supabase.table('cases').select('id, status, assigned_to').eq('id', id).execute()
+    # Check if case exists and fetch current status, assigned_to & tags for merging
+    chk = supabase.table('cases').select('id, status, assigned_to, tags').eq('id', id).execute()
     if not chk.data:
         raise HTTPException(status_code=404, detail="Case not found")
         
     old_status = chk.data[0].get('status')
     assigned_to = chk.data[0].get('assigned_to') or "System"
+    existing_tags = chk.data[0].get('tags') or []
     today_str = datetime.now().date().isoformat()
     
     # 1. Update cases table
@@ -163,8 +188,15 @@ def update_case(id: str, case_in: CaseUpdate):
     if case_in.currency is not None: db_update["currency"] = case_in.currency
     if case_in.description is not None: db_update["description"] = case_in.description
     if case_in.expected_closure is not None: db_update["expected_closure"] = case_in.expected_closure or None
-    if case_in.tags is not None: db_update["tags"] = case_in.tags
-    if case_in.budget_category is not None: db_update["budget_category"] = case_in.budget_category
+    
+    # Handle tags and budget_category merging
+    if case_in.tags is not None or case_in.budget_category is not None:
+        new_tags = case_in.tags if case_in.tags is not None else [t for t in existing_tags if not t.startswith("budget:")]
+        new_budget = case_in.budget_category if case_in.budget_category is not None else next((t.split(":")[1] for t in existing_tags if t.startswith("budget:")), "standard")
+        
+        db_tags = [t for t in new_tags if not t.startswith("budget:")]
+        db_tags.append(f"budget:{new_budget}")
+        db_update["tags"] = db_tags
     
     db_update["last_updated"] = today_str
     
@@ -173,11 +205,15 @@ def update_case(id: str, case_in: CaseUpdate):
         
     # 2. Log status transition if status changed
     if case_in.status is not None and case_in.status != old_status:
-        supabase.table('case_updates').insert({
-            "case_id": id,
-            "text": f"Status transitioned from '{old_status}' to '{case_in.status}'.",
-            "author": assigned_to
-        }).execute()
+        try:
+            supabase.table('case_updates').insert({
+                "case_id": id,
+                "text": f"Status transitioned from '{old_status}' to '{case_in.status}'.",
+                "author": assigned_to
+            }).execute()
+        except Exception as e:
+            print(f"Warning: Failed to log case update on transition: {e}")
+            
         create_notification(
             "status_change", 
             f"Status Updated: {id}", 
@@ -187,15 +223,18 @@ def update_case(id: str, case_in: CaseUpdate):
         
     # 3. Update document checklist
     if case_in.documents is not None:
-        checklist_upserts = []
-        for doc_type, received in case_in.documents.items():
-            checklist_upserts.append({
-                "case_id": id,
-                "doc_type": doc_type,
-                "received": received
-            })
-        if checklist_upserts:
-            supabase.table('document_checklist').upsert(checklist_upserts, on_conflict="case_id,doc_type").execute()
+        try:
+            checklist_upserts = []
+            for doc_type, received in case_in.documents.items():
+                checklist_upserts.append({
+                    "case_id": id,
+                    "doc_type": doc_type,
+                    "received": received
+                })
+            if checklist_upserts:
+                supabase.table('document_checklist').upsert(checklist_upserts, on_conflict="case_id,doc_type").execute()
+        except Exception as e:
+            print(f"Warning: Failed to update document checklist: {e}")
             
     return {"status": "success"}
 
@@ -232,13 +271,16 @@ def set_bidders(id: str, payload: Dict[str, List[str]]):
     if supplier_ids is None:
         raise HTTPException(status_code=400, detail="Missing supplierIds")
         
-    # 1. Clear existing bidders
-    supabase.table('case_suppliers').delete().eq('case_id', id).execute()
-    
-    # 2. Add new bidders
-    if supplier_ids:
-        junction_rows = [{"case_id": id, "supplier_id": sid} for sid in supplier_ids]
-        supabase.table('case_suppliers').insert(junction_rows).execute()
+    try:
+        # 1. Clear existing bidders
+        supabase.table('case_suppliers').delete().eq('case_id', id).execute()
+        
+        # 2. Add new bidders
+        if supplier_ids:
+            junction_rows = [{"case_id": id, "supplier_id": sid} for sid in supplier_ids]
+            supabase.table('case_suppliers').insert(junction_rows).execute()
+    except Exception as e:
+        print(f"Warning: Failed to update case suppliers: {e}")
         
     # Update stage automatically to "Bidders Defined" if currently at "RFQ Draft"
     case_res = supabase.table('cases').select('status').eq('id', id).execute()
