@@ -583,6 +583,17 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                         ))}
                       </div>
                     )}
+
+                    {aiRisk.recommendations && aiRisk.recommendations.length > 0 && (
+                      <div className="mt-2.5 p-2 bg-white dark:bg-surface-alt rounded border border-enterprise-100 space-y-1">
+                        <span className="text-[10px] font-bold text-text-secondary block uppercase tracking-wider">Mitigation Recommendations</span>
+                        <ul className="list-disc pl-4 text-[11px] text-text-secondary space-y-1">
+                          {aiRisk.recommendations.map((rec, idx) => (
+                            <li key={idx} className="leading-relaxed">{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
