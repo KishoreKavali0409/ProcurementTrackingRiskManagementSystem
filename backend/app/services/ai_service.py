@@ -89,53 +89,7 @@ def generate_mock_fallback(prompt: str, json_schema: dict = None) -> str:
             
         return json.dumps(mock_data)
 
-    # 2. Next Best Actions Mock
-    if "next best actions" in prompt.lower() or "next-best-step" in prompt.lower():
-        mock_actions = {
-            "actions": [
-                {
-                    "action": "Trigger vendor quote negotiation",
-                    "reason": "Current bids exceed estimated value, negotiator role should request revised bids.",
-                    "priority": "High"
-                },
-                {
-                    "action": "Complete Technical Evaluation document",
-                    "reason": "RFQ phase is closed but the Comparative Analysis document is missing in checklist.",
-                    "priority": "Medium"
-                },
-                {
-                    "action": "Schedule timeline review with Kishore Kavali",
-                    "reason": "Case has been stuck in current stage for 6 days with no updates.",
-                    "priority": "Low"
-                }
-            ]
-        }
-        return json.dumps(mock_actions)
-
-    # 3. Risk Analyst Mock
-    if "explain the risks" in prompt.lower() or "risk analyst" in prompt.lower() or "risk" in prompt.lower():
-        mock_analysis = {
-            "summary": "This procurement case faces critical budget escalation risks and potential project timeline delays.",
-            "explanations": [
-                {
-                    "riskType": "Budget Overrun",
-                    "severity": "critical",
-                    "explanation": "The current lowest bidder quote exceeds the approved budget threshold by 12.5%. This requires immediate escalation to the Procurement Lead."
-                },
-                {
-                    "riskType": "Stale Case",
-                    "severity": "warning",
-                    "explanation": "No updates have been registered on the timeline for over 7 days. Risk of project delivery bottleneck."
-                }
-            ],
-            "recommendations": [
-                "Request revised quotes from suppliers to fit budget constraints.",
-                "Assign secondary review tasks to Priya Sharma."
-            ]
-        }
-        return json.dumps(mock_analysis)
-
-    # 4. Weekly Brief Mock
+    # 2. Weekly Brief Mock
     if "weekly" in prompt.lower() or "brief" in prompt.lower() or "briefing" in prompt.lower():
         return """# AI Executive Stakeholder Briefing - ProcureTrack
 
@@ -161,5 +115,51 @@ def generate_mock_fallback(prompt: str, json_schema: dict = None) -> str:
 
 ---
 *Report automatically generated using ProcureTrack Enterprise AI Engine.*"""
+
+    # 3. Next Best Actions Mock
+    if "next best actions" in prompt.lower() or "next-best-step" in prompt.lower():
+        mock_actions = {
+            "actions": [
+                {
+                    "action": "Trigger vendor quote negotiation",
+                    "reason": "Current bids exceed estimated value, negotiator role should request revised bids.",
+                    "priority": "High"
+                },
+                {
+                    "action": "Complete Technical Evaluation document",
+                    "reason": "RFQ phase is closed but the Comparative Analysis document is missing in checklist.",
+                    "priority": "Medium"
+                },
+                {
+                    "action": "Schedule timeline review with Kishore Kavali",
+                    "reason": "Case has been stuck in current stage for 6 days with no updates.",
+                    "priority": "Low"
+                }
+            ]
+        }
+        return json.dumps(mock_actions)
+
+    # 4. Risk Analyst Mock
+    if "explain the risks" in prompt.lower() or "risk analyst" in prompt.lower() or "risk analysis" in prompt.lower():
+        mock_analysis = {
+            "summary": "This procurement case faces critical budget escalation risks and potential project timeline delays.",
+            "explanations": [
+                {
+                    "riskType": "Budget Overrun",
+                    "severity": "critical",
+                    "explanation": "The current lowest bidder quote exceeds the approved budget threshold by 12.5%. This requires immediate escalation to the Procurement Lead."
+                },
+                {
+                    "riskType": "Stale Case",
+                    "severity": "warning",
+                    "explanation": "No updates have been registered on the timeline for over 7 days. Risk of project delivery bottleneck."
+                }
+            ],
+            "recommendations": [
+                "Request revised quotes from suppliers to fit budget constraints.",
+                "Assign secondary review tasks to Priya Sharma."
+            ]
+        }
+        return json.dumps(mock_analysis)
 
     return "AI generation completed successfully."
