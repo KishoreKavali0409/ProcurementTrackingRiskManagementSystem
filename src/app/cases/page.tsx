@@ -114,7 +114,7 @@ export default function CasesPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search cases, vendors, requesters…"
-              className="w-full h-7 pl-7 pr-3 text-sm border border-enterprise-200 rounded bg-white placeholder-text-muted
+              className="w-full h-7 pl-7 pr-3 text-sm border border-enterprise-200 rounded bg-surface placeholder-text-muted
                 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all"
             />
             {search && (
@@ -141,11 +141,11 @@ export default function CasesPage() {
 
         {/* Advanced filters panel */}
         {showFilters && (
-          <div className="flex gap-3 flex-wrap px-4 py-3 border-b border-enterprise-200 bg-white">
+          <div className="flex gap-3 flex-wrap px-4 py-3 border-b border-enterprise-200 bg-surface">
             <div className="flex flex-col gap-1">
               <label className="text-2xs font-semibold text-enterprise-400 uppercase tracking-wide">Category</label>
               <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
-                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
                 <option value="all">All Categories</option>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
@@ -153,7 +153,7 @@ export default function CasesPage() {
             <div className="flex flex-col gap-1">
               <label className="text-2xs font-semibold text-enterprise-400 uppercase tracking-wide">Department</label>
               <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
                 <option value="all">All Departments</option>
                 {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
               </select>
@@ -161,7 +161,7 @@ export default function CasesPage() {
             <div className="flex flex-col gap-1">
               <label className="text-2xs font-semibold text-enterprise-400 uppercase tracking-wide">Priority</label>
               <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}
-                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
+                className="h-7 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand">
                 <option value="all">All Priorities</option>
                 {['Critical', 'High', 'Medium', 'Low'].map(p => <option key={p}>{p}</option>)}
               </select>
@@ -181,7 +181,7 @@ export default function CasesPage() {
                   ? f.value === 'at-risk'
                     ? 'bg-danger text-white'
                     : 'bg-brand text-white'
-                  : 'bg-white border border-enterprise-200 text-text-secondary hover:border-enterprise-400 hover:text-text-primary'
+                  : 'bg-surface border border-enterprise-200 text-text-secondary hover:border-enterprise-400 hover:text-text-primary'
               )}
             >
               {f.label}
@@ -191,7 +191,7 @@ export default function CasesPage() {
 
         <ErrorBoundary>
           {!initialized ? (
-            <div className="bg-white dark:bg-surface-alt">
+            <div className="bg-surface">
               <TableRowSkeleton />
               <TableRowSkeleton />
               <TableRowSkeleton />

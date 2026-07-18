@@ -191,15 +191,15 @@ export default function ReportsPage() {
     >
       {/* Report meta cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
-        <div className="bg-white border border-enterprise-200 rounded shadow-sm p-3">
+        <div className="bg-surface border border-enterprise-200 rounded shadow-sm p-3">
           <div className="text-xs text-text-muted mb-0.5">Report Date</div>
           <div className="text-sm font-semibold text-text-primary">{dateStr}</div>
         </div>
-        <div className="bg-white border border-enterprise-200 rounded shadow-sm p-3">
+        <div className="bg-surface border border-enterprise-200 rounded shadow-sm p-3">
           <div className="text-xs text-text-muted mb-0.5">Reporting Period</div>
           <div className="text-sm font-semibold text-text-primary">Weekly Summary</div>
         </div>
-        <div className="bg-white border border-enterprise-200 rounded shadow-sm p-3">
+        <div className="bg-surface border border-enterprise-200 rounded shadow-sm p-3">
           <div className="text-xs text-text-muted mb-0.5">Prepared By</div>
           <div className="text-sm font-semibold text-text-primary">Priya Sharma</div>
         </div>
@@ -215,8 +215,8 @@ export default function ReportsPage() {
               className={clsx(
                 'flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-all',
                 activeTab === id
-                  ? 'border-brand text-brand bg-white'
-                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-white/60'
+                  ? 'border-brand text-brand bg-surface'
+                  : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-surface/60'
               )}
             >
               <Icon size={14} />

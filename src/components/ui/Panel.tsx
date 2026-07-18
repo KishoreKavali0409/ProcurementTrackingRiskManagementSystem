@@ -11,7 +11,7 @@ interface PanelProps {
 export function Panel({ children, className, noPad }: PanelProps) {
   return (
     <div className={clsx(
-      'bg-white border border-enterprise-200 rounded shadow-sm',
+      'bg-surface border border-enterprise-200 rounded shadow-sm',
       !noPad && 'p-5',
       className
     )}>

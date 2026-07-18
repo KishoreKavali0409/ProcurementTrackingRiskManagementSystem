@@ -23,7 +23,7 @@ export function KpiCard({ label, value, sub, icon: Icon, variant = 'default', tr
   const v = VARIANT_MAP[variant];
   return (
     <div className={clsx(
-      'bg-white rounded border shadow-sm p-4 flex gap-4 items-start hover:shadow-md transition-shadow',
+      'bg-surface rounded border shadow-sm p-4 flex gap-4 items-start hover:shadow-md transition-shadow',
       v.border, v.top
     )}>
       <div className={clsx('w-9 h-9 rounded flex items-center justify-center flex-shrink-0', v.icon)}>

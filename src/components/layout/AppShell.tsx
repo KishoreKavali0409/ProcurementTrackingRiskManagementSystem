@@ -175,7 +175,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
               />
             </div>
             {showSearch && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-enterprise-200 rounded shadow-md z-50 overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-enterprise-200 rounded shadow-md z-50 overflow-hidden">
                 {searchResults.map(c => {
                   const risks = computeRisks(c);
                   return (
@@ -240,7 +240,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                 )}
               </button>
               {notiOpen && (
-                <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-enterprise-200 rounded shadow-md z-50 overflow-hidden text-slate-900">
+                <div className="absolute right-0 top-full mt-1 w-80 bg-surface border border-enterprise-200 rounded shadow-md z-50 overflow-hidden text-text-primary">
                   <div className="px-3 py-2 border-b border-enterprise-100 bg-enterprise-50 flex items-center justify-between">
                     <span className="text-xs font-semibold text-text-primary">
                       Notifications ({notifications.filter(n => !n.read).length} unread)
@@ -300,7 +300,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
                 <ChevronDown size={11} className="text-enterprise-400 pointer-events-none" />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-enterprise-200 rounded shadow-md z-50">
+                <div className="absolute right-0 top-full mt-1 w-52 bg-surface border border-enterprise-200 rounded shadow-md z-50">
                   <div className="px-3 py-2.5 border-b border-enterprise-100">
                     <div className="text-sm font-semibold text-text-primary">{user?.name}</div>
                     <div className="text-xs text-text-secondary">{user?.role}</div>
@@ -337,7 +337,7 @@ export function AppShell({ children, title, subtitle, actions, breadcrumbs }: Pr
         )}
 
         {/* ── Page Header ───────────────────────────── */}
-        <div className="bg-white border-b border-enterprise-200 px-6 py-3 flex-shrink-0">
+        <div className="bg-surface border-b border-enterprise-200 px-6 py-3 flex-shrink-0">
           {breadcrumbs && breadcrumbs.length > 0 && (
             <nav className="flex items-center gap-1 text-xs text-text-secondary mb-1">
               {breadcrumbs.map((b, i) => (

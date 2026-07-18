@@ -100,7 +100,7 @@ export function CaseTable({ cases }: Props) {
                 key={c.id}
                 className={clsx(
                   'border-b border-enterprise-100 group hover:bg-brand-light/40 transition-colors cursor-pointer',
-                  i % 2 === 0 ? 'bg-white' : 'bg-enterprise-50/50'
+                  i % 2 === 0 ? 'bg-surface' : 'bg-enterprise-50/50'
                 )}
               >
                 <td className="px-3 py-2.5">

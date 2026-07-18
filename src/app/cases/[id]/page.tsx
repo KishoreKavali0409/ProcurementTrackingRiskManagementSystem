@@ -268,7 +268,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                         ? 'border-brand bg-brand text-white'
                         : isDone
                           ? 'border-success bg-success text-white'
-                          : 'border-enterprise-300 text-text-muted bg-white'
+                          : 'border-enterprise-300 text-text-muted bg-surface'
                     )}>
                       {isDone ? '✓' : i + 1}
                     </div>
@@ -401,8 +401,8 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                           <tr 
                             key={q.id} 
                             className={clsx(
-                              "border-b border-enterprise-100 transition-colors",
-                              isBest ? "bg-success-bg/60 text-success hover:bg-success-bg" : "hover:bg-enterprise-50/50 bg-white"
+                              "border-b border-enterprise-100 transition-colors text-xs",
+                              isBest ? "bg-success-bg/60 text-success hover:bg-success-bg" : "hover:bg-enterprise-50/50 bg-surface"
                             )}
                           >
                             <td className="px-3 py-2.5 font-semibold text-text-primary">
@@ -427,11 +427,11 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
           <Panel>
             <PanelHeader title="Financial Summary" icon={<TrendingUp size={15} />} />
             <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="p-3 rounded border border-enterprise-100 bg-enterprise-50">
+              <div className="p-3 rounded border border-enterprise-100 bg-surface">
                 <div className="text-xs text-text-muted mb-1">Approved Budget</div>
                 <div className="text-xl font-bold text-text-primary">{formatCurrency(c.approvedBudget)}</div>
               </div>
-              <div className={`p-3 rounded border ${budgetOverrun > 0 ? 'border-warning/30 bg-warning-bg' : 'border-enterprise-100 bg-enterprise-50'}`}>
+              <div className={`p-3 rounded border ${budgetOverrun > 0 ? 'border-warning/30 bg-warning-bg' : 'border-enterprise-100 bg-surface'}`}>
                 <div className="text-xs text-text-muted mb-1">Estimated Value</div>
                 <div className={`text-xl font-bold ${budgetOverrun > 0 ? 'text-warning' : 'text-text-primary'}`}>
                   {formatCurrency(c.estimatedValue)}
@@ -465,7 +465,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
             />
             <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
               {DOCUMENT_TYPES.map(doc => (
-                <div key={doc} className={`flex items-center gap-2.5 p-2 rounded border text-sm ${c.documents[doc] ? 'border-success/20 bg-success-bg' : 'border-enterprise-100 bg-enterprise-50'}`}>
+                <div key={doc} className={`flex items-center gap-2.5 p-2 rounded border text-sm ${c.documents[doc] ? 'border-success/20 bg-success-bg' : 'border-enterprise-100 bg-surface'}`}>
                   {c.documents[doc]
                     ? <CheckCircle size={14} className="text-success flex-shrink-0" />
                     : <XCircle size={14} className="text-enterprise-300 flex-shrink-0" />}
@@ -484,17 +484,17 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
             />
 
             {updateOpen && (
-              <div className="mb-4 p-3 rounded border border-brand/20 bg-brand-light/30">
+              <div className="mb-4 p-3 rounded border border-brand/20 bg-surface">
                 <input
                   value={updateAuthor}
                   onChange={e => setUpdateAuthor(e.target.value)}
-                  className="w-full h-7 px-2.5 mb-2 text-sm border border-enterprise-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                  className="w-full h-7 px-2.5 mb-2 text-sm border border-enterprise-200 rounded bg-surface focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                   placeholder="Author name"
                 />
                 <textarea
                   value={updateText}
                   onChange={e => setUpdateText(e.target.value)}
-                  className="w-full px-2.5 py-1.5 text-sm border border-enterprise-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
+                  className="w-full px-2.5 py-1.5 text-sm border border-enterprise-200 rounded bg-surface focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand resize-none"
                   rows={3}
                   placeholder="What happened? What are the next steps?"
                 />
@@ -723,7 +723,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
       {/* Assign Bidders Dialog */}
       {assignOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
+          <div className="bg-surface rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
             <div className="px-4 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between">
               <span className="font-semibold text-text-primary">Assign Bidders</span>
               <button onClick={() => setAssignOpen(false)} className="text-text-muted hover:text-text-primary text-sm font-semibold">✕</button>
@@ -768,7 +768,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
       {/* Submit Quotation Dialog */}
       {quoteOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
+          <div className="bg-surface rounded border border-enterprise-200 shadow-md max-w-md w-full overflow-hidden">
             <div className="px-4 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between">
               <span className="font-semibold text-text-primary">Submit Supplier Quotation</span>
               <button onClick={() => setQuoteOpen(false)} className="text-text-muted hover:text-text-primary text-sm font-semibold">✕</button>
@@ -780,7 +780,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                   required
                   value={selectedSupplierId}
                   onChange={e => setSelectedSupplierId(e.target.value)}
-                  className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-surface focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">-- Choose Assigned Supplier --</option>
                   {bidders.map(b => (
@@ -795,7 +795,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                     type="number"
                     value={unitPrice}
                     onChange={e => setUnitPrice(e.target.value)}
-                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
                     placeholder="0"
                   />
                 </div>
@@ -806,7 +806,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                     type="number"
                     value={totalPrice}
                     onChange={e => setTotalPrice(e.target.value)}
-                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
                     placeholder="0"
                   />
                 </div>
@@ -818,7 +818,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                     type="number"
                     value={deliveryDays}
                     onChange={e => setDeliveryDays(e.target.value)}
-                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
                     placeholder="Days"
                   />
                 </div>
@@ -828,7 +828,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                     type="text"
                     value={paymentTerms}
                     onChange={e => setPaymentTerms(e.target.value)}
-                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded focus:outline-none"
+                    className="w-full h-8 px-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
                     placeholder="e.g. Net 30"
                   />
                 </div>
@@ -838,7 +838,7 @@ function CaseDetailInner({ caseData: c }: { caseData: ProcurementCase }) {
                 <textarea 
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  className="w-full px-2 py-1 text-sm border border-enterprise-200 rounded focus:outline-none resize-none"
+                  className="w-full px-2 py-1 text-sm border border-enterprise-200 rounded bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                   rows={2}
                   placeholder="e.g. Warranty details, volume discount"
                 />

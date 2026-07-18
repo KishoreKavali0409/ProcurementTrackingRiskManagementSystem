@@ -27,7 +27,7 @@ function Input({ label, id, required, ...rest }: React.InputHTMLAttributes<HTMLI
       <input
         id={id}
         {...rest}
-        className="w-full h-8 px-2.5 text-sm border border-enterprise-200 rounded bg-white text-text-primary placeholder-text-muted
+        className="w-full h-8 px-2.5 text-sm border border-enterprise-200 rounded bg-surface text-text-primary placeholder-text-muted
           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all"
       />
     </div>
@@ -43,7 +43,7 @@ function Select({ label, id, children, required, ...rest }: React.SelectHTMLAttr
       <select
         id={id}
         {...rest}
-        className="w-full h-8 px-2.5 text-sm border border-enterprise-200 rounded bg-white text-text-primary
+        className="w-full h-8 px-2.5 text-sm border border-enterprise-200 rounded bg-surface text-text-primary
           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all appearance-none"
       >
         {children}
@@ -59,7 +59,7 @@ function Textarea({ label, id, ...rest }: React.TextareaHTMLAttributes<HTMLTextA
       <textarea
         id={id}
         {...rest}
-        className="w-full px-2.5 py-2 text-sm border border-enterprise-200 rounded bg-white text-text-primary placeholder-text-muted
+        className="w-full px-2.5 py-2 text-sm border border-enterprise-200 rounded bg-surface text-text-primary placeholder-text-muted
           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all resize-none"
       />
     </div>
@@ -195,7 +195,7 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-lg border border-enterprise-200 shadow-md max-w-lg w-full flex flex-col max-h-[90vh]">
+      <div className="bg-surface rounded-lg border border-enterprise-200 shadow-md max-w-lg w-full flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-5 py-3 border-b border-enterprise-200 bg-enterprise-50 flex items-center justify-between rounded-t-lg">
           <span className="font-semibold text-text-primary text-sm uppercase tracking-wide">
@@ -215,7 +215,7 @@ export function CaseFormModal({ open, onClose, onSave, onDelete, editCase, exist
               className={clsx(
                 'px-4 py-2.5 text-xs font-semibold border-b-2 -mb-px transition-all',
                 activeTab === t.id
-                  ? 'border-brand text-brand bg-white'
+                  ? 'border-brand text-brand bg-surface'
                   : 'border-transparent text-text-secondary hover:text-text-primary'
               )}
             >
