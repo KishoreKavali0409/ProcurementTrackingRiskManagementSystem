@@ -17,7 +17,7 @@ interface Props {
 
 const VARIANT = {
   primary:   'bg-brand text-white hover:bg-brand-dark border-brand hover:border-brand-dark shadow-sm',
-  secondary: 'bg-white text-text-primary hover:bg-enterprise-50 border-enterprise-200 shadow-sm',
+  secondary: 'bg-surface text-text-primary hover:bg-enterprise-50 border-enterprise-200 shadow-sm',
   ghost:     'bg-transparent text-text-secondary hover:bg-enterprise-100 border-transparent',
   danger:    'bg-danger-bg text-danger hover:bg-danger/10 border-danger/20',
   success:   'bg-success-bg text-success hover:bg-success/10 border-success/20',
