@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
 import { KpiCard } from '@/components/ui/KpiCard';
+import { getUser, canEdit, AuthUser } from '@/lib/auth';
 import { Panel, PanelHeader } from '@/components/ui/Panel';
 import { StatusBadge, RiskBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -29,8 +30,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { cases, init } = useStore();
+  const [user, setUser] = useState<AuthUser | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { init(); }, []);
+  useEffect(() => { 
+    init(); 
+    setUser(getUser());
+  }, []);
 
   const open = useMemo(() => cases.filter(c => c.status !== 'GRN / Closed'), [cases]);
   const atRisk = useMemo(() => open.filter(c => computeRisks(c).length > 0), [open]);
@@ -79,9 +84,11 @@ export default function DashboardPage() {
       actions={
         <>
           <Button icon={RefreshCw} size="sm" onClick={() => init()}>Refresh</Button>
-          <Link href="/cases">
-            <Button icon={Plus} variant="primary" size="sm">New Case</Button>
-          </Link>
+          {canEdit(user) && (
+            <Link href="/cases">
+              <Button icon={Plus} variant="primary" size="sm">New Case</Button>
+            </Link>
+          )}
         </>
       }
     >

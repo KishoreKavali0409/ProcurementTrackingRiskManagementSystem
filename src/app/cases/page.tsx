@@ -15,11 +15,17 @@ import { Plus, Search, RefreshCw, Download, Filter, X } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { TableRowSkeleton } from '@/components/ui/Skeleton';
+import { getUser, canEdit, AuthUser } from '@/lib/auth';
 
 export default function CasesPage() {
   const { cases, init, initialized, addCase, updateCase, deleteCase } = useStore();
+  const [user, setUser] = useState<AuthUser | null>(null);
+  
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { init(); }, []);
+  useEffect(() => { 
+    init(); 
+    setUser(getUser());
+  }, []);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'all' | 'at-risk'>('all');
@@ -90,9 +96,11 @@ export default function CasesPage() {
         <>
           <Button icon={RefreshCw} size="sm" onClick={() => init()}>Refresh</Button>
           <Button icon={Download} size="sm" onClick={() => exportCasesToCSV(filtered)}>Export CSV</Button>
-          <Button icon={Plus} variant="primary" size="sm" onClick={() => { setEditCase(null); setModalOpen(true); }}>
-            New Case
-          </Button>
+          {canEdit(user) && (
+            <Button icon={Plus} variant="primary" size="sm" onClick={() => { setEditCase(null); setModalOpen(true); }}>
+              New Case
+            </Button>
+          )}
         </>
       }
     >
