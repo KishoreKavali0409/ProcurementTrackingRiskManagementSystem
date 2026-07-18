@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS public.cases (
     updates JSONB DEFAULT '[]'::jsonb
 );
 
--- 3. Case Bidders Relation (Many-to-Many via JSONB or explicit table)
-CREATE TABLE IF NOT EXISTS public.case_bidders (
+-- 3. Case Suppliers Relation (Many-to-Many via JSONB or explicit table)
+CREATE TABLE IF NOT EXISTS public.case_suppliers (
     case_id TEXT REFERENCES public.cases(id) ON DELETE CASCADE,
     supplier_id UUID REFERENCES public.suppliers(id) ON DELETE CASCADE,
     PRIMARY KEY (case_id, supplier_id)
@@ -60,8 +60,8 @@ CREATE POLICY "Enable all operations for all users" ON public.suppliers FOR ALL 
 ALTER TABLE public.cases ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all operations for all users" ON public.cases FOR ALL USING (true);
 
-ALTER TABLE public.case_bidders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Enable all operations for all users" ON public.case_bidders FOR ALL USING (true);
+ALTER TABLE public.case_suppliers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable all operations for all users" ON public.case_suppliers FOR ALL USING (true);
 
 ALTER TABLE public.quotations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable all operations for all users" ON public.quotations FOR ALL USING (true);

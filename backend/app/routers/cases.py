@@ -129,11 +129,13 @@ def create_case(case_in: CaseCreate):
 
 @router.put("/{id}")
 def update_case(id: str, case_in: CaseUpdate):
-    # Check if case exists
-    chk = supabase.table('cases').select('id').eq('id', id).execute()
+    # Check if case exists and fetch current status & assigned_to for transition logging
+    chk = supabase.table('cases').select('id, status, assigned_to').eq('id', id).execute()
     if not chk.data:
         raise HTTPException(status_code=404, detail="Case not found")
         
+    old_status = chk.data[0].get('status')
+    assigned_to = chk.data[0].get('assigned_to') or "System"
     today_str = datetime.now().date().isoformat()
     
     # 1. Update cases table
@@ -159,7 +161,15 @@ def update_case(id: str, case_in: CaseUpdate):
     if db_update:
         supabase.table('cases').update(db_update).eq('id', id).execute()
         
-    # 2. Update document checklist
+    # 2. Log status transition if status changed
+    if case_in.status is not None and case_in.status != old_status:
+        supabase.table('case_updates').insert({
+            "case_id": id,
+            "text": f"Status transitioned from '{old_status}' to '{case_in.status}'.",
+            "author": assigned_to
+        }).execute()
+        
+    # 3. Update document checklist
     if case_in.documents is not None:
         checklist_upserts = []
         for doc_type, received in case_in.documents.items():
